@@ -5,1391 +5,1108 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>GHJH SPORT</title>
   <style>
-/* ========================================================
-   GHJH SPORT - 徑賽圈數與名次計數系統 (手機深色模式專用)
-   ======================================================== */
-
-:root {
-  --bg-primary: #0a0f1d;
-  --bg-secondary: #111827;
-  --bg-card: #1e293b;
-  --bg-card-hover: #283548;
-  
-  --border-color: #334155;
-  --border-light: #475569;
-  
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  
-  /* 狀態顏色 */
-  --accent-cyan: #38bdf8;
-  --accent-blue: #2563eb;
-  
-  /* 最後一圈 (警示琥珀金) */
-  --final-lap-bg: rgba(245, 158, 11, 0.22);
-  --final-lap-border: #f59e0b;
-  --final-lap-text: #fef08a;
-  --final-lap-glow: rgba(245, 158, 11, 0.4);
-
-  /* 完賽 (活力綠) */
-  --finished-bg: rgba(16, 185, 129, 0.22);
-  --finished-border: #10b981;
-  --finished-text: #a7f3d0;
-
-  /* 領先/第一名 */
-  --gold: #fbbf24;
-  --silver: #cbd5e1;
-  --bronze: #f97316;
-
-  /* 系統字體 */
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-}
-
-/* 全域重置 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden; /* 確保不需滑動畫面即可看到所有編號按鈕 */
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  line-height: 1.2;
-}
-
-/* 所有按鈕與文字均不換行 (嚴格符合需求) */
-button, 
-.control-btn, 
-.bib-btn, 
-.btn-text, 
-.alert-tag, 
-.leader-tag, 
-.action-tag,
-.selector-label, 
-.panel-summary {
-  white-space: nowrap !important;
-  text-overflow: ellipsis;
-}
-
-/* 主容器 */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100dvh;
-  max-width: 600px; /* 適用常見手機寬度 */
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-  background-color: var(--bg-primary);
-}
-
-/* 頂部控制面板 */
-.top-bar {
-  flex-shrink: 0;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 20;
-}
-
-.header-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.logo-area {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.logo-badge {
-  background: linear-gradient(135deg, #ef4444, #f97316);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 5px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-.logo-title {
-  font-size: 17px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  background: linear-gradient(90deg, #ffffff, #38bdf8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 總圈數選擇器 */
-.laps-selector-wrapper {
-  display: flex;
-  align-items: center;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 2px 4px;
-  font-size: 12px;
-}
-
-.selector-label {
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  margin-right: 2px;
-}
-
-.total-laps-select {
-  background: transparent;
-  border: none;
-  color: var(--accent-cyan);
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  outline: none;
-  padding: 2px 0;
-}
-
-.total-laps-select option {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-/* 控制按鈕共同樣式 */
-.control-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-card);
-  color: var(--text-primary);
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all 0.15s ease;
-}
-
-.control-btn:active {
-  transform: scale(0.95);
-}
-
-.control-btn .btn-icon {
-  font-size: 13px;
-}
-
-/* 復原按鈕 */
-.undo-btn {
-  background-color: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: var(--accent-cyan);
-}
-
-.undo-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  border-color: var(--border-color);
-  color: var(--text-muted);
-}
-
-/* 重設按鈕 (內聯兩階段防呆確認，無彈窗) */
-.reset-btn {
-  background-color: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
-}
-
-.reset-btn.confirming {
-  background-color: #ef4444;
-  border-color: #dc2626;
-  color: #ffffff;
-  animation: pulse-danger 0.8s infinite alternate;
-}
-
-@keyframes pulse-danger {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.05); }
-}
-
-/* 名次榜切換按鈕 */
-.toggle-view-btn {
-  background-color: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.4);
-  color: var(--gold);
-}
-
-/* 即時資訊跑馬燈條 */
-.status-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  background-color: rgba(15, 23, 42, 0.8);
-  border-radius: 6px;
-  padding: 4px 8px;
-  min-height: 28px;
-  font-size: 12px;
-  overflow: hidden;
-}
-
-.banner-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-/* 剩最後一圈提醒專區 (高對比琥珀黃) */
-.final-lap-alert {
-  background: var(--final-lap-bg);
-  border: 1px solid var(--final-lap-border);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--final-lap-text);
-  font-weight: 800;
-  animation: pulse-alert 1.2s infinite ease-in-out;
-}
-
-@keyframes pulse-alert {
-  0%, 100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
-  50% { box-shadow: 0 0 8px var(--final-lap-glow); }
-}
-
-.alert-tag {
-  color: #fbbf24;
-  font-weight: 900;
-}
-
-.alert-list {
-  color: #fffbeb;
-  font-weight: 800;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.leader-tag {
-  color: var(--gold);
-  font-weight: 800;
-  font-size: 11px;
-}
-
-.leader-list {
-  color: var(--text-primary);
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.last-action-info {
-  margin-left: auto;
-  color: var(--text-muted);
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.action-tag {
-  background: #334155;
-  color: #cbd5e1;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 10px;
-  margin-right: 3px;
-}
-
-/* ========================================================
-   按鈕網格區：30 個按鈕免滑動全螢幕配置
-   5 欄 x 6 列 = 30 個學生按鈕
-   ======================================================== */
-.grid-container {
-  flex: 1;
-  min-height: 0; /* 關鍵：防止 flex 子元件撐破螢幕引發滾動 */
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  gap: 4px;
-  padding: 4px;
-  width: 100%;
-  height: 100%;
-  background-color: var(--bg-primary);
-  box-sizing: border-box;
-}
-
-/* 學生號碼衣服按鈕 */
-.bib-btn {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--bg-card);
-  border: 1.5px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-primary);
-  cursor: pointer;
-  touch-action: manipulation;
-  overflow: hidden;
-  transition: transform 0.1s ease, border-color 0.15s ease, background-color 0.15s ease;
-  min-width: 0;
-  min-height: 0;
-  padding: 2px;
-}
-
-/* 長按時的進度填滿覆蓋條 (視覺回饋，無彈窗、無音效) */
-.bib-btn .press-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0%;
-  height: 100%;
-  background: rgba(239, 68, 68, 0.4);
-  pointer-events: none;
-  transition: width 0.45s linear;
-  z-index: 1;
-}
-
-.bib-btn.pressing .press-progress {
-  width: 100%;
-}
-
-.bib-btn:active {
-  transform: scale(0.94);
-}
-
-/* 學生號碼：大字體、高對比 */
-.bib-number {
-  font-size: clamp(17px, 4.8vw, 24px);
-  font-weight: 900;
-  color: #ffffff;
-  line-height: 1;
-  margin-bottom: 2px;
-  letter-spacing: -0.5px;
-  z-index: 2;
-  white-space: nowrap !important;
-}
-
-/* 圈數顯示：例如 "3/8圈" */
-.bib-laps {
-  font-size: clamp(10px, 2.7vw, 13px);
-  font-weight: 700;
-  color: var(--text-secondary);
-  line-height: 1;
-  margin-bottom: 2px;
-  z-index: 2;
-  white-space: nowrap !important;
-}
-
-/* 名次/狀態徽章 */
-.bib-status {
-  font-size: clamp(9px, 2.4vw, 11px);
-  font-weight: 800;
-  line-height: 1;
-  padding: 1px 3px;
-  border-radius: 3px;
-  background-color: rgba(15, 23, 42, 0.7);
-  color: var(--text-muted);
-  z-index: 2;
-  white-space: nowrap !important;
-}
-
-/* 進行中狀態 (已有圈數) */
-.bib-btn.running {
-  border-color: rgba(56, 189, 248, 0.5);
-  background-color: #172554;
-}
-
-.bib-btn.running .bib-number {
-  color: #ffffff;
-}
-
-.bib-btn.running .bib-laps {
-  color: var(--accent-cyan);
-}
-
-.bib-btn.running .bib-status {
-  color: #93c5fd;
-  background-color: rgba(30, 58, 138, 0.8);
-}
-
-/* 前三名特別顏色徽章 */
-.bib-btn.rank-1 .bib-status {
-  background-color: var(--gold);
-  color: #000000;
-}
-.bib-btn.rank-2 .bib-status {
-  background-color: var(--silver);
-  color: #000000;
-}
-.bib-btn.rank-3 .bib-status {
-  background-color: var(--bronze);
-  color: #ffffff;
-}
-
-/* 剩最後一圈提醒狀態 (琥珀金高亮 + 醒目標示) */
-.bib-btn.final-lap {
-  background-color: var(--final-lap-bg) !important;
-  border-color: var(--final-lap-border) !important;
-  border-width: 2px !important;
-}
-
-.bib-btn.final-lap .bib-number {
-  color: #ffffff;
-}
-
-.bib-btn.final-lap .bib-laps {
-  color: var(--final-lap-text);
-  font-weight: 900;
-}
-
-.bib-btn.final-lap .bib-status {
-  background-color: #f59e0b;
-  color: #000000;
-  font-weight: 900;
-}
-
-/* 完賽狀態 (翡翠綠高亮 + 鎖定名次) */
-.bib-btn.finished {
-  background-color: var(--finished-bg) !important;
-  border-color: var(--finished-border) !important;
-  opacity: 0.92;
-}
-
-.bib-btn.finished .bib-number {
-  color: #ffffff;
-}
-
-.bib-btn.finished .bib-laps {
-  color: var(--finished-text);
-}
-
-.bib-btn.finished .bib-status {
-  background-color: #10b981;
-  color: #000000;
-  font-weight: 900;
-}
-
-/* 點擊瞬間微動畫 */
-@keyframes tap-flash {
-  0% { transform: scale(1.08); filter: brightness(1.4); }
-  100% { transform: scale(1); filter: brightness(1); }
-}
-
-.bib-btn.just-updated {
-  animation: tap-flash 0.22s ease-out;
-}
-
-/* ========================================================
-   名次榜抽屜面板 (可快速展開供老師謄寫全體排名)
-   ======================================================== */
-.leaderboard-panel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(10, 15, 29, 0.98);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(100%);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-.leaderboard-panel.active {
-  transform: translateY(0);
-}
-
-.panel-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.panel-title-area {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.panel-title-icon {
-  font-size: 18px;
-}
-
-.panel-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--gold);
-}
-
-.panel-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.panel-summary {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.close-panel-btn {
-  background-color: #334155;
-  color: #ffffff;
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* 名次項目卡片 */
-.rank-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-}
-
-.rank-card.top-1 { border-color: var(--gold); background: rgba(251, 191, 36, 0.12); }
-.rank-card.top-2 { border-color: var(--silver); background: rgba(203, 213, 225, 0.1); }
-.rank-card.top-3 { border-color: var(--bronze); background: rgba(249, 115, 22, 0.1); }
-
-.rank-card-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.rank-order {
-  font-size: 15px;
-  font-weight: 900;
-  width: 32px;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.rank-card.top-1 .rank-order { color: var(--gold); }
-.rank-card.top-2 .rank-order { color: var(--silver); }
-.rank-card.top-3 .rank-order { color: var(--bronze); }
-
-.rank-bib-name {
-  font-size: 17px;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.rank-card-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rank-lap-badge {
-  font-size: 13px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background-color: rgba(56, 189, 248, 0.15);
-  color: var(--accent-cyan);
-}
-
-.rank-status-badge {
-  font-size: 12px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background-color: #334155;
-  color: #cbd5e1;
-}
-
-.rank-status-badge.final-lap {
-  background-color: #f59e0b;
-  color: #000000;
-}
-
-.rank-status-badge.finished {
-  background-color: #10b981;
-  color: #000000;
-}
-
-/* 極窄或極小螢幕優化 (iPhone SE 568px / 667px 高度等) */
-@media (max-height: 670px) {
-  .top-bar {
-    padding: 3px 6px;
-    gap: 2px;
-  }
-  .logo-title {
-    font-size: 15px;
-  }
-  .control-btn {
-    padding: 3px 6px;
-    font-size: 11px;
-  }
-  .status-banner {
-    min-height: 24px;
-    padding: 2px 6px;
-    font-size: 11px;
-  }
-  .grid-container {
-    gap: 2px;
-    padding: 2px;
-  }
-  .bib-btn {
-    border-radius: 5px;
-    padding: 1px;
-  }
-}
+    :root {
+      --bg-main: #0a0d14;
+      --bg-card: #121824;
+      --bg-card-active: #1a2336;
+      --border-card: #1f2b42;
+      
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-emerald: #10b981;
+      --accent-gold: #fbbf24;
+      
+      --text-main: #f1f5f9;
+      --text-muted: #64748b;
+      --text-amber: #fde68a;
+      --text-emerald: #6ee7b7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", sans-serif;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      padding: env(safe-area-inset-top, 4px) env(safe-area-inset-right, 4px) env(safe-area-inset-bottom, 4px) env(safe-area-inset-left, 4px);
+    }
+
+    /* 頂部控制列 */
+    header {
+      flex: 0 0 auto;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand {
+      font-weight: 900;
+      font-size: 1.05rem;
+      letter-spacing: 0.8px;
+      background: linear-gradient(135deg, #60a5fa, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 100%;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      height: 32px;
+      min-width: 34px;
+      padding: 0 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+      background: #334155;
+    }
+
+    .icon-btn.active-amber {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    .icon-btn:disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .icon-btn svg {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* 總圈數設定膠囊 */
+    .lap-setting-pill {
+      display: flex;
+      align-items: center;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      height: 32px;
+      padding: 0 4px;
+      gap: 2px;
+    }
+
+    .lap-setting-pill span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      padding: 0 2px;
+      white-space: nowrap;
+    }
+
+    .lap-step-btn {
+      background: #1f2937;
+      border: none;
+      color: #9ca3af;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .lap-step-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 2.5;
+    }
+
+    /* 重設按鈕長按環 */
+    .reset-btn {
+      position: relative;
+      overflow: hidden;
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .reset-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 100%;
+      width: 0%;
+      background: rgba(239, 68, 68, 0.35);
+      transition: width 0.05s linear;
+      pointer-events: none;
+    }
+
+    /* 頂部即時領先排行榜簡潔橫幅 */
+    .leader-ticker {
+      flex: 0 0 26px;
+      background: #0f172a;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      gap: 6px;
+      overflow: hidden;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+
+    .ticker-label {
+      color: #94a3b8;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .ticker-label svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--accent-gold);
+    }
+
+    .ticker-items {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex: 1;
+    }
+    .ticker-items::-webkit-scrollbar {
+      display: none;
+    }
+
+    .ticker-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #1e293b;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+    }
+    .ticker-badge.rank-1 {
+      border-color: #f59e0b;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.15);
+      font-weight: 800;
+    }
+    .ticker-badge.rank-2 {
+      border-color: #94a3b8;
+      color: #e2e8f0;
+      background: rgba(148, 163, 184, 0.15);
+      font-weight: 700;
+    }
+    .ticker-badge.rank-3 {
+      border-color: #b45309;
+      color: #f97316;
+      background: rgba(180, 83, 9, 0.15);
+      font-weight: 700;
+    }
+
+    /* 主網格：30 個學生按鈕 5欄 × 6列，嚴格無滾動條 */
+    .grid-container {
+      flex: 1 1 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(6, 1fr);
+      gap: 3px;
+      padding: 3px;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* 學生按鈕卡片 */
+    .student-btn {
+      position: relative;
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-card);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 3px;
+      box-sizing: border-box;
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.15s, background-color 0.15s, transform 0.08s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .student-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* 頂部指示區：左上名次，右上最後一圈/完賽標籤 */
+    .card-top {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      line-height: 1;
+      height: 14px;
+    }
+
+    .rank-tag {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      border-radius: 3px;
+      padding: 0 2px;
+      min-width: 14px;
+      text-align: center;
+    }
+
+    .rank-tag.p1 {
+      color: #000;
+      background: var(--accent-gold);
+      font-weight: 900;
+    }
+    .rank-tag.p2 {
+      color: #000;
+      background: #cbd5e1;
+      font-weight: 900;
+    }
+    .rank-tag.p3 {
+      color: #fff;
+      background: #b45309;
+      font-weight: 900;
+    }
+    .rank-tag.top-ten {
+      color: #38bdf8;
+    }
+
+    .status-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      line-height: 1;
+    }
+
+    .status-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* 中央巨大學生號碼 */
+    .id-number {
+      font-size: clamp(1.1rem, 4.2vw, 1.6rem);
+      font-weight: 900;
+      color: #e2e8f0;
+      line-height: 1;
+      letter-spacing: -0.5px;
+      margin: auto 0;
+    }
+
+    /* 底部圈數進度資訊 */
+    .lap-info {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 1px;
+      line-height: 1;
+      height: 14px;
+      font-weight: 800;
+    }
+
+    .current-lap {
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    .total-lap-sub {
+      font-size: 0.6rem;
+      color: #475569;
+    }
+
+    /* 各種狀態樣式 */
+    /* 1. 進行中 (已跑但未到最後一圈) */
+    .student-btn.in-progress {
+      border-color: #2563eb;
+      background: #0f1e38;
+    }
+    .student-btn.in-progress .id-number {
+      color: #60a5fa;
+    }
+    .student-btn.in-progress .current-lap {
+      color: #93c5fd;
+    }
+
+    /* 2. 最後一圈！特別醒目，光芒閃爍 */
+    .student-btn.bell-lap {
+      border-color: var(--accent-amber);
+      background: #2b1803;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.45) inset;
+      animation: pulse-bell 1.4s infinite ease-in-out;
+    }
+    .student-btn.bell-lap .id-number {
+      color: #fef08a;
+      text-shadow: 0 0 8px rgba(254, 240, 138, 0.6);
+    }
+    .student-btn.bell-lap .current-lap {
+      color: #fde047;
+      font-weight: 900;
+    }
+    .student-btn.bell-lap .status-icon svg {
+      stroke: #facc15;
+      fill: #facc15;
+      animation: swing 0.7s infinite alternate ease-in-out;
+    }
+
+    /* 3. 完賽 FINISH */
+    .student-btn.finished {
+      border-color: var(--accent-emerald);
+      background: #062b1e;
+    }
+    .student-btn.finished .id-number {
+      color: #6ee7b7;
+    }
+    .student-btn.finished .current-lap {
+      color: #34d399;
+    }
+    .student-btn.finished .status-icon svg {
+      stroke: #34d399;
+      fill: none;
+    }
+
+    /* 長按視覺反饋指示器 (底線填充) */
+    .longpress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: var(--accent-red);
+      transition: width 0.05s linear;
+      pointer-events: none;
+    }
+
+    /* 動畫 */
+    @keyframes pulse-bell {
+      0%, 100% {
+        border-color: #f59e0b;
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.3) inset;
+      }
+      50% {
+        border-color: #ef4444;
+        box-shadow: 0 0 14px rgba(239, 68, 68, 0.7) inset, 0 0 6px rgba(239, 68, 68, 0.5);
+      }
+    }
+
+    @keyframes swing {
+      0% { transform: rotate(-15deg); }
+      100% { transform: rotate(15deg); }
+    }
+
+    /* 浮動名次總覽抽屜 (若裁判想看完整 1~30 名單，直接滑動遮罩查看) */
+    .leader-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      padding: env(safe-area-inset-top, 10px) 12px env(safe-area-inset-bottom, 10px) 12px;
+    }
+    .leader-modal.show {
+      display: flex;
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 4px;
+      border-bottom: 1px solid #334155;
+    }
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .close-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #fff;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rank-list-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .rank-card-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+    .rank-pos {
+      font-weight: 900;
+      font-size: 0.95rem;
+      width: 28px;
+    }
+    .rank-pos.c1 { color: #f59e0b; }
+    .rank-pos.c2 { color: #cbd5e1; }
+    .rank-pos.c3 { color: #ea580c; }
+    .rank-bib {
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #f1f5f9;
+    }
+    .rank-lap-badge {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
-  <div id="app" class="app-container">
-    <!-- 頂部控制與資訊欄 -->
-    <header class="top-bar">
-      <div class="header-main">
-        <div class="logo-area">
-          <span class="logo-badge">徑賽</span>
-          <h1 class="logo-title">GHJH SPORT</h1>
-        </div>
-
-        <div class="header-actions">
-          <!-- 總圈數選擇 (至多 8 圈) -->
-          <div class="laps-selector-wrapper">
-            <label for="totalLapsSelect" class="selector-label">總圈數</label>
-            <select id="totalLapsSelect" class="total-laps-select">
-              <option value="1">1 圈</option>
-              <option value="2">2 圈</option>
-              <option value="3">3 圈</option>
-              <option value="4">4 圈</option>
-              <option value="5">5 圈</option>
-              <option value="6">6 圈</option>
-              <option value="7">7 圈</option>
-              <option value="8" selected>8 圈</option>
-            </select>
-          </div>
-
-          <!-- 復原按鈕 (避免重複及錯誤點擊) -->
-          <button id="undoBtn" class="control-btn undo-btn" disabled title="復原上一次點擊">
-            <span class="btn-icon">↩</span>
-            <span class="btn-text">復原</span>
-          </button>
-
-          <!-- 重設按鈕 (內聯兩階段確認，無彈窗) -->
-          <button id="resetBtn" class="control-btn reset-btn" title="重設所有資料">
-            <span class="btn-icon">↺</span>
-            <span class="btn-text" id="resetBtnText">重設</span>
-          </button>
-
-          <!-- 排名榜切換按鈕 -->
-          <button id="viewToggleBtn" class="control-btn toggle-view-btn" title="查看名次榜">
-            <span class="btn-icon">🏆</span>
-            <span class="btn-text" id="viewToggleText">名次</span>
-          </button>
-        </div>
+  <div id="app">
+    <!-- 頂部列 -->
+    <header>
+      <div class="brand">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#logoG)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="logoG" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#60a5fa" />
+              <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+          </defs>
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+          <line x1="4" y1="22" x2="4" y2="15"></line>
+        </svg>
+        GHJH SPORT
       </div>
 
-      <!-- 即時警示與狀態條 (無音效、無語音、無彈窗，但極為醒目) -->
-      <div class="status-banner" id="statusBanner">
-        <div class="banner-item final-lap-alert" id="finalLapAlert" style="display: none;">
-          <span class="alert-tag">⚠️ 剩最後一圈</span>
-          <span class="alert-list" id="finalLapList">無</span>
+      <div class="top-actions">
+        <!-- 總圈數設定 (預設 8 圈) -->
+        <div class="lap-setting-pill" id="lapPill">
+          <button class="lap-step-btn" id="btnLapMinus" aria-label="減少總圈數">
+            <svg viewBox="0 0 24 24" fill="none"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span id="targetLapsDisplay">🏁 8</span>
+          <button class="lap-step-btn" id="btnLapPlus" aria-label="增加總圈數">
+            <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
-        <div class="banner-item race-leader-info" id="raceLeaderInfo">
-          <span class="leader-tag">👑 目前領先</span>
-          <span class="leader-list" id="raceLeaderList">比賽尚未開始</span>
-        </div>
-        <div class="banner-item last-action-info" id="lastActionInfo">
-          <span class="action-tag">操作方式</span>
-          <span class="action-desc">短按+1圈｜長按-1圈</span>
-        </div>
+
+        <!-- 完整名次表開關 -->
+        <button class="icon-btn" id="btnViewLeaderboard" aria-label="名次總覽">
+          <svg viewBox="0 0 24 24"><path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21 1.18.54 2.03 2.03 2.03 3.79M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+        </button>
+
+        <!-- 復原按鈕 (Undo) -->
+        <button class="icon-btn" id="btnUndo" disabled aria-label="復原">
+          <svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+        </button>
+
+        <!-- 長按重設按鈕 (避免誤觸，長按 1.2 秒重置) -->
+        <button class="icon-btn reset-btn" id="btnReset" aria-label="重設">
+          <div class="reset-progress" id="resetProgress"></div>
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        </button>
       </div>
     </header>
 
-    <!-- 主內容區：30 個學生號碼按鈕網格 (5x6 配置，免滑動填滿螢幕) -->
-    <main class="grid-container" id="gridContainer">
-      <!-- 由 JavaScript 自動產生 01 ~ 30 號按鈕 -->
-    </main>
+    <!-- 即時領先榜滾動橫條 -->
+    <div class="leader-ticker">
+      <div class="ticker-label">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        TOP
+      </div>
+      <div class="ticker-items" id="tickerItems">
+        <span style="color:#475569; font-size:0.75rem;">-</span>
+      </div>
+    </div>
 
-    <!-- 名次榜抽屜面板 (非彈窗，可收合展開，方便老師謄寫最終成績) -->
-    <section class="leaderboard-panel" id="leaderboardPanel">
-      <div class="panel-header">
-        <div class="panel-title-area">
-          <span class="panel-title-icon">🏆</span>
-          <h2 class="panel-title">即時名次榜</h2>
-        </div>
-        <div class="panel-header-actions">
-          <span class="panel-summary" id="panelSummary">已完賽: 0 / 30 人</span>
-          <button id="closeLeaderboardBtn" class="control-btn close-panel-btn">返回按鈕網格</button>
-        </div>
+    <!-- 30 個按鈕網格 (5 欄 × 6 列) -->
+    <main class="grid-container" id="gridContainer">
+      <!-- 由 JS 動態生成 30 個學生按鈕 -->
+    </main>
+  </div>
+
+  <!-- 浮動名次總覽抽屜 -->
+  <div class="leader-modal" id="leaderModal">
+    <div class="modal-head">
+      <div class="modal-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        RANK
       </div>
-      <div class="panel-body" id="leaderboardList">
-        <!-- 名次清單項目由 JS 動態生成 -->
-      </div>
-    </section>
+      <button class="close-btn" id="btnCloseModal">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="rank-list-scroll" id="rankListScroll">
+      <!-- 名次詳細列表 -->
+    </div>
   </div>
 
   <script>
-/**
- * GHJH SPORT - 徑賽圈數與名次計數系統
- * 專為手機端設計，深色模式，免伺服器，無彈窗，防誤觸
- */
-(() => {
-  'use strict';
-
-  // 系統常數
-  const TOTAL_STUDENTS = 30;
-  const LONG_PRESS_MS = 450; // 長按判定時間 (毫秒)
-  const RESET_TIMEOUT_MS = 3000; // 重設確認倒數 (毫秒)
-  const STORAGE_KEY = 'GHJH_SPORT_RACE_STATE_V1';
-
-  // DOM 元素引用
-  const gridContainer = document.getElementById('gridContainer');
-  const totalLapsSelect = document.getElementById('totalLapsSelect');
-  const undoBtn = document.getElementById('undoBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const resetBtnText = document.getElementById('resetBtnText');
-  const viewToggleBtn = document.getElementById('viewToggleBtn');
-  const viewToggleText = document.getElementById('viewToggleText');
-  const leaderboardPanel = document.getElementById('leaderboardPanel');
-  const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
-  const leaderboardList = document.getElementById('leaderboardList');
-  const panelSummary = document.getElementById('panelSummary');
-
-  // 跑馬燈元素
-  const finalLapAlert = document.getElementById('finalLapAlert');
-  const finalLapList = document.getElementById('finalLapList');
-  const raceLeaderInfo = document.getElementById('raceLeaderInfo');
-  const raceLeaderList = document.getElementById('raceLeaderList');
-  const lastActionInfo = document.getElementById('lastActionInfo');
-
-  // 狀態變數
-  let totalLaps = parseInt(totalLapsSelect.value, 10) || 8;
-  let students = []; // 30位學生的資料
-  let historyStack = []; // 復原操作堆疊
-  let resetConfirmTimer = null; // 重設二階段確認計時器
-  let isResetConfirming = false;
-
-  /**
-   * 初始化 30 位學生資料
-   */
-  function initStudents() {
-    students = [];
-    for (let i = 1; i <= TOTAL_STUDENTS; i++) {
-      students.push({
-        bib: i,
-        bibStr: i < 10 ? `0${i}` : `${i}`,
+    (function() {
+      // 狀態變數
+      const TOTAL_STUDENTS = 30;
+      let targetLaps = 8;
+      
+      // 學生資料：{ id, laps, lastLapTime, finishRank }
+      let students = Array.from({ length: TOTAL_STUDENTS }, (_, i) => ({
+        id: i + 1,
         laps: 0,
-        lastUpdated: 0, // 完成最近一圈的時間戳記
-        finishTime: 0,  // 完賽時間戳記
-        isFinished: false,
-        rank: null
-      });
-    }
-  }
+        lastLapTime: 0,
+        finishRank: null
+      }));
 
-  /**
-   * 載入儲存的狀態 (避免誤關閉瀏覽器遺失資料)
-   */
-  function loadSavedState() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data && Array.isArray(data.students) && data.students.length === TOTAL_STUDENTS) {
-          students = data.students;
-          totalLaps = data.totalLaps || 8;
-          totalLapsSelect.value = totalLaps;
-          historyStack = Array.isArray(data.historyStack) ? data.historyStack : [];
-          return true;
+      // 操作歷史 (支援連續 Undo)
+      const historyStack = [];
+
+      // DOM 元素
+      const gridContainer = document.getElementById('gridContainer');
+      const targetLapsDisplay = document.getElementById('targetLapsDisplay');
+      const btnLapMinus = document.getElementById('btnLapMinus');
+      const btnLapPlus = document.getElementById('btnLapPlus');
+      const btnUndo = document.getElementById('btnUndo');
+      const btnReset = document.getElementById('btnReset');
+      const resetProgress = document.getElementById('resetProgress');
+      const tickerItems = document.getElementById('tickerItems');
+      const btnViewLeaderboard = document.getElementById('btnViewLeaderboard');
+      const leaderModal = document.getElementById('leaderModal');
+      const btnCloseModal = document.getElementById('btnCloseModal');
+      const rankListScroll = document.getElementById('rankListScroll');
+
+      // 初始化按鈕 DOM
+      function createGridButtons() {
+        gridContainer.innerHTML = '';
+        for (let i = 1; i <= TOTAL_STUDENTS; i++) {
+          const btn = document.createElement('div');
+          btn.className = 'student-btn';
+          btn.id = `btn-student-${i}`;
+          btn.setAttribute('data-id', i);
+          
+          btn.innerHTML = `
+            <div class="card-top">
+              <span class="rank-tag" id="rank-tag-${i}"></span>
+              <span class="status-icon" id="status-icon-${i}"></span>
+            </div>
+            <div class="id-number">${i < 10 ? '0' + i : i}</div>
+            <div class="lap-info">
+              <span class="current-lap" id="lap-num-${i}">0</span>
+              <span class="total-lap-sub">/${targetLaps}</span>
+            </div>
+            <div class="longpress-bar" id="lp-bar-${i}"></div>
+          `;
+          
+          attachButtonEvents(btn, i);
+          gridContainer.appendChild(btn);
         }
       }
-    } catch (e) {
-      console.warn('載入暫存紀錄失敗', e);
-    }
-    return false;
-  }
 
-  /**
-   * 儲存當前狀態到 localStorage
-   */
-  function persistState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        students,
-        totalLaps,
-        historyStack
-      }));
-    } catch (e) {
-      // 靜默處理
-    }
-  }
+      // 觸控與長按/短按邏輯 (長按減圈、短按加圈，含防手震容差)
+      function attachButtonEvents(btn, studentId) {
+        let pressTimer = null;
+        let isLongPress = false;
+        let startTimestamp = 0;
+        let startX = 0;
+        let startY = 0;
+        let animationFrame = null;
+        const LONG_PRESS_DURATION = 400; // 400毫秒長按觸發
+        const MOVE_TOLERANCE = 12; // 移動超過12px才視為取消
+        const lpBar = btn.querySelector('.longpress-bar');
 
-  /**
-   * 計算並刷新全體名次順序
-   */
-  function calculateRankings() {
-    // 排序邏輯：
-    // 1. 完賽者優先，依完賽時間戳記 (finishTime) 升冪排序 (先衝線先得勝)
-    // 2. 進行中者，依完成圈數 (laps) 降冪排序
-    // 3. 圈數相同者，依達到該圈數的時間戳記 (lastUpdated) 升冪排序 (先完成該圈者領先)
-    // 4. 0 圈者列於最後，依號碼牌升冪排序
-    const sorted = [...students].sort((a, b) => {
-      if (a.isFinished && b.isFinished) {
-        return a.finishTime - b.finishTime;
+        function startPress(e) {
+          isLongPress = false;
+          startTimestamp = Date.now();
+          startX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+          startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+          function animateBar() {
+            const elapsed = Date.now() - startTimestamp;
+            const progress = Math.min(100, (elapsed / LONG_PRESS_DURATION) * 100);
+            if (lpBar) lpBar.style.width = progress + '%';
+            if (progress < 100 && !isLongPress) {
+              animationFrame = requestAnimationFrame(animateBar);
+            }
+          }
+          animationFrame = requestAnimationFrame(animateBar);
+
+          pressTimer = setTimeout(() => {
+            isLongPress = true;
+            cancelAnimationFrame(animationFrame);
+            if (lpBar) lpBar.style.width = '0%';
+            
+            // 觸發長按減圈
+            handleLapChange(studentId, -1);
+            
+            if (navigator.vibrate) {
+              try { navigator.vibrate(50); } catch (_) {}
+            }
+          }, LONG_PRESS_DURATION);
+        }
+
+        function movePress(e) {
+          if (!startTimestamp) return;
+          const currentX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+          const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+          const dist = Math.hypot(currentX - startX, currentY - startY);
+          if (dist > MOVE_TOLERANCE) {
+            cancelPress();
+          }
+        }
+
+        function endPress(e) {
+          clearTimeout(pressTimer);
+          cancelAnimationFrame(animationFrame);
+          if (lpBar) lpBar.style.width = '0%';
+
+          if (!isLongPress && startTimestamp > 0 && (Date.now() - startTimestamp) < LONG_PRESS_DURATION) {
+            // 短按加圈
+            handleLapChange(studentId, +1);
+          }
+          startTimestamp = 0;
+          isLongPress = false;
+        }
+
+        function cancelPress() {
+          clearTimeout(pressTimer);
+          cancelAnimationFrame(animationFrame);
+          if (lpBar) lpBar.style.width = '0%';
+          startTimestamp = 0;
+          isLongPress = false;
+        }
+
+        // Pointer 事件統一處理觸控與滑鼠
+        btn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          startPress(e);
+        });
+
+        btn.addEventListener('pointermove', movePress);
+
+        btn.addEventListener('pointerup', (e) => {
+          e.preventDefault();
+          endPress(e);
+        });
+
+        btn.addEventListener('pointerleave', cancelPress);
+        btn.addEventListener('pointercancel', cancelPress);
+
+        // 避免長按跳出瀏覽器右鍵選單
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
       }
-      if (a.isFinished) return -1;
-      if (b.isFinished) return 1;
 
-      if (b.laps !== a.laps) {
-        return b.laps - a.laps;
+      // 圈數變更處理
+      function handleLapChange(studentId, delta) {
+        const student = students.find(s => s.id === studentId);
+        if (!student) return;
+
+        const prevLaps = student.laps;
+        const prevTime = student.lastLapTime;
+        const prevRank = student.finishRank;
+
+        // 計算新圈數
+        let newLaps = prevLaps + delta;
+        if (newLaps < 0) newLaps = 0;
+        if (newLaps > targetLaps) return; // 已達到總圈數則不可再加
+
+        if (newLaps === prevLaps) return;
+
+        // 記錄歷史 (用於 Undo)
+        historyStack.push({
+          studentId,
+          prevLaps,
+          prevTime,
+          prevRank,
+          newLaps
+        });
+        updateUndoButton();
+
+        // 更新學生狀態
+        student.laps = newLaps;
+        student.lastLapTime = newLaps > 0 ? Date.now() : 0;
+
+        // 完賽標記計算
+        if (student.laps >= targetLaps) {
+          if (!student.finishRank) {
+            // 取得已完賽人數 + 1
+            const finishedCount = students.filter(s => s.laps >= targetLaps && s.finishRank !== null).length;
+            student.finishRank = finishedCount + 1;
+          }
+        } else {
+          student.finishRank = null;
+        }
+
+        updateAllUI();
       }
 
-      if (a.laps > 0) {
-        return a.lastUpdated - b.lastUpdated;
+      // 復原最後一步操作
+      function undoLastAction() {
+        if (historyStack.length === 0) return;
+        const lastAction = historyStack.pop();
+        const student = students.find(s => s.id === lastAction.studentId);
+        if (student) {
+          student.laps = lastAction.prevLaps;
+          student.lastLapTime = lastAction.prevTime;
+          student.finishRank = lastAction.prevRank;
+        }
+        updateUndoButton();
+        updateAllUI();
       }
 
-      return a.bib - b.bib;
-    });
-
-    // 指派名次
-    let currentRank = 1;
-    sorted.forEach((student) => {
-      if (student.laps > 0) {
-        student.rank = currentRank++;
-      } else {
-        student.rank = null; // 尚未開始計圈
+      function updateUndoButton() {
+        btnUndo.disabled = historyStack.length === 0;
+        if (historyStack.length > 0) {
+          btnUndo.classList.add('active-amber');
+        } else {
+          btnUndo.classList.remove('active-amber');
+        }
       }
-    });
 
-    const rankMap = new Map();
-    students.forEach(s => rankMap.set(s.bib, s.rank));
-    return rankMap;
-  }
-
-  /**
-   * 增加圈數 (短按按鈕)
-   * @param {number} bib - 學生號碼 (1-30)
-   */
-  function incrementLap(bib) {
-    const student = students.find(s => s.bib === bib);
-    if (!student) return;
-
-    if (student.laps >= totalLaps) {
-      // 已完賽，不再增加圈數
-      flashButton(bib);
-      return;
-    }
-
-    const now = Date.now();
-    const prevLaps = student.laps;
-    const prevLastUpdated = student.lastUpdated;
-    const prevFinishTime = student.finishTime;
-    const prevFinished = student.isFinished;
-
-    student.laps += 1;
-    student.lastUpdated = now;
-
-    if (student.laps >= totalLaps) {
-      student.isFinished = true;
-      student.finishTime = now;
-    }
-
-    // 存入復原堆疊
-    historyStack.push({
-      action: 'increment',
-      bib: bib,
-      prevLaps,
-      prevLastUpdated,
-      prevFinishTime,
-      prevFinished,
-      newLap: student.laps,
-      timeText: `${student.bibStr}號 +1圈(${student.laps}/${totalLaps})`
-    });
-
-    onRaceStateChanged(bib, `已記錄 ${student.bibStr}號 完成第${student.laps}圈`);
-  }
-
-  /**
-   * 減少圈數 (長按按鈕)
-   * @param {number} bib - 學生號碼 (1-30)
-   */
-  function decrementLap(bib) {
-    const student = students.find(s => s.bib === bib);
-    if (!student || student.laps <= 0) {
-      flashButton(bib);
-      return;
-    }
-
-    const prevLaps = student.laps;
-    const prevLastUpdated = student.lastUpdated;
-    const prevFinishTime = student.finishTime;
-    const prevFinished = student.isFinished;
-
-    student.laps -= 1;
-    student.isFinished = false;
-    student.finishTime = 0;
-    student.lastUpdated = Date.now();
-
-    // 存入復原堆疊
-    historyStack.push({
-      action: 'decrement',
-      bib: bib,
-      prevLaps,
-      prevLastUpdated,
-      prevFinishTime,
-      prevFinished,
-      newLap: student.laps,
-      timeText: `${student.bibStr}號 -1圈(${student.laps}/${totalLaps})`
-    });
-
-    onRaceStateChanged(bib, `修正扣除 ${student.bibStr}號 1圈 (現為${student.laps}圈)`);
-  }
-
-  /**
-   * 執行復原
-   */
-  function undoLastAction() {
-    if (historyStack.length === 0) return;
-
-    const lastAction = historyStack.pop();
-    const student = students.find(s => s.bib === lastAction.bib);
-    if (!student) return;
-
-    student.laps = lastAction.prevLaps;
-    student.lastUpdated = lastAction.prevLastUpdated;
-    student.finishTime = lastAction.prevFinishTime;
-    student.isFinished = lastAction.prevFinished;
-
-    onRaceStateChanged(student.bib, `已復原 ${student.bibStr}號 上次操作`);
-  }
-
-  /**
-   * 比賽狀態改變後的統一步驟
-   */
-  function onRaceStateChanged(updatedBib, logText) {
-    calculateRankings();
-    renderAllButtons();
-    updateStatusBanners(logText);
-    updateUndoButtonState();
-    persistState();
-
-    if (updatedBib) {
-      flashButton(updatedBib);
-    }
-  }
-
-  /**
-   * 按鈕微動畫
-   */
-  function flashButton(bib) {
-    const btn = document.getElementById(`bib-btn-${bib}`);
-    if (btn) {
-      btn.classList.remove('just-updated');
-      void btn.offsetWidth;
-      btn.classList.add('just-updated');
-    }
-  }
-
-  /**
-   * 更新復原按鈕狀態
-   */
-  function updateUndoButtonState() {
-    if (historyStack.length > 0) {
-      const topAction = historyStack[historyStack.length - 1];
-      const bibStr = topAction.bib < 10 ? `0${topAction.bib}` : `${topAction.bib}`;
-      undoBtn.disabled = false;
-      undoBtn.querySelector('.btn-text').textContent = `復原(${bibStr}號)`;
-    } else {
-      undoBtn.disabled = true;
-      undoBtn.querySelector('.btn-text').textContent = '復原';
-    }
-  }
-
-  /**
-   * 更新跑馬燈與最後一圈醒目提醒
-   */
-  function updateStatusBanners(logText) {
-    if (logText) {
-      lastActionInfo.querySelector('.action-desc').textContent = logText;
-    }
-
-    // 當 totalLaps > 1 時，完成了 totalLaps - 1 圈即代表進入最後一圈
-    const finalLapRunners = students
-      .filter(s => !s.isFinished && totalLaps > 1 && s.laps === totalLaps - 1)
-      .map(s => `${s.bibStr}號`);
-
-    if (finalLapRunners.length > 0) {
-      finalLapAlert.style.display = 'flex';
-      finalLapList.textContent = finalLapRunners.join('、');
-      raceLeaderInfo.style.display = 'none';
-    } else {
-      finalLapAlert.style.display = 'none';
-      raceLeaderInfo.style.display = 'flex';
-
-      const leaders = students
-        .filter(s => s.laps > 0)
-        .sort((a, b) => (a.rank || 99) - (b.rank || 99))
-        .slice(0, 2)
-        .map(s => `${s.bibStr}號(${s.isFinished ? '完賽' : s.laps + '圈'})`);
-
-      if (leaders.length > 0) {
-        raceLeaderList.textContent = leaders.join(' ｜ ');
-      } else {
-        raceLeaderList.textContent = '比賽尚未開始';
-      }
-    }
-  }
-
-  /**
-   * 建立 30 個學生按鈕
-   */
-  function buildButtonsGrid() {
-    gridContainer.innerHTML = '';
-
-    for (let i = 1; i <= TOTAL_STUDENTS; i++) {
-      const btn = document.createElement('button');
-      btn.className = 'bib-btn';
-      btn.id = `bib-btn-${i}`;
-      btn.setAttribute('data-bib', i);
-
-      // 長按視覺倒退進度填滿條
-      const progressOverlay = document.createElement('div');
-      progressOverlay.className = 'press-progress';
-      btn.appendChild(progressOverlay);
-
-      // 號碼衣大字體
-      const numSpan = document.createElement('span');
-      numSpan.className = 'bib-number';
-      numSpan.textContent = i < 10 ? `0${i}` : `${i}`;
-      btn.appendChild(numSpan);
-
-      // 圈數
-      const lapsSpan = document.createElement('span');
-      lapsSpan.className = 'bib-laps';
-      lapsSpan.id = `bib-laps-${i}`;
-      lapsSpan.textContent = `0/${totalLaps}圈`;
-      btn.appendChild(lapsSpan);
-
-      // 狀態與名次徽章
-      const statusSpan = document.createElement('span');
-      statusSpan.className = 'bib-status';
-      statusSpan.id = `bib-status-${i}`;
-      statusSpan.textContent = '準備';
-      btn.appendChild(statusSpan);
-
-      attachPressHandlers(btn, i);
-      gridContainer.appendChild(btn);
-    }
-  }
-
-  /**
-   * 綁定短按(+1圈)與長按(-1圈)事件
-   */
-  function attachPressHandlers(element, bib) {
-    let pressTimer = null;
-    let isLongPressTriggered = false;
-    let startX = 0;
-    let startY = 0;
-
-    element.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      return false;
-    });
-
-    const startPress = (e) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-      isLongPressTriggered = false;
-      startX = e.clientX;
-      startY = e.clientY;
-
-      element.classList.add('pressing');
-
-      pressTimer = setTimeout(() => {
-        isLongPressTriggered = true;
-        element.classList.remove('pressing');
-        decrementLap(bib); // 長按扣減圈數
-      }, LONG_PRESS_MS);
-    };
-
-    const cancelPress = () => {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      element.classList.remove('pressing');
-    };
-
-    const endPress = (e) => {
-      if (pressTimer) {
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      element.classList.remove('pressing');
-
-      if (!isLongPressTriggered) {
-        incrementLap(bib); // 短按增加圈數
-      }
-      isLongPressTriggered = false;
-    };
-
-    const movePress = (e) => {
-      const deltaX = Math.abs(e.clientX - startX);
-      const deltaY = Math.abs(e.clientY - startY);
-      if (deltaX > 12 || deltaY > 12) {
-        cancelPress();
-      }
-    };
-
-    element.addEventListener('pointerdown', startPress);
-    element.addEventListener('pointerup', endPress);
-    element.addEventListener('pointercancel', cancelPress);
-    element.addEventListener('pointerleave', cancelPress);
-    element.addEventListener('pointermove', movePress);
-  }
-
-  /**
-   * 刷新所有 30 個按鈕狀態 (外觀、字體、圈數、名次、警告)
-   */
-  function renderAllButtons() {
-    students.forEach(student => {
-      const btn = document.getElementById(`bib-btn-${student.bib}`);
-      if (!btn) return;
-
-      const lapsSpan = document.getElementById(`bib-laps-${student.bib}`);
-      const statusSpan = document.getElementById(`bib-status-${student.bib}`);
-
-      btn.classList.remove('running', 'final-lap', 'finished', 'rank-1', 'rank-2', 'rank-3');
-
-      lapsSpan.textContent = `${student.laps}/${totalLaps}圈`;
-
-      const isFinalLap = !student.isFinished && totalLaps > 1 && student.laps === totalLaps - 1;
-
-      if (student.isFinished) {
-        btn.classList.add('finished');
-        statusSpan.textContent = `完賽#${student.rank || 1}`;
-      } else if (isFinalLap) {
-        btn.classList.add('final-lap');
-        statusSpan.textContent = student.rank ? `剩1圈#${student.rank}` : `剩1圈`;
-      } else if (student.laps > 0) {
-        btn.classList.add('running');
-        statusSpan.textContent = student.rank ? `第${student.rank}名` : `進行中`;
-
-        if (student.rank === 1) btn.classList.add('rank-1');
-        else if (student.rank === 2) btn.classList.add('rank-2');
-        else if (student.rank === 3) btn.classList.add('rank-3');
-      } else {
-        statusSpan.textContent = '準備';
-      }
-    });
-
-    if (leaderboardPanel.classList.contains('active')) {
-      renderLeaderboardPanel();
-    }
-  }
-
-  /**
-   * 渲染名次榜面板清單 (供老師謄寫全體排序)
-   */
-  function renderLeaderboardPanel() {
-    const finishedCount = students.filter(s => s.isFinished).length;
-    panelSummary.textContent = `完賽: ${finishedCount} / ${TOTAL_STUDENTS} 人`;
-
-    leaderboardList.innerHTML = '';
-
-    const sorted = [...students].sort((a, b) => {
-      if (a.isFinished && b.isFinished) return a.finishTime - b.finishTime;
-      if (a.isFinished) return -1;
-      if (b.isFinished) return 1;
-      if (b.laps !== a.laps) return b.laps - a.laps;
-      if (a.laps > 0) return a.lastUpdated - b.lastUpdated;
-      return a.bib - b.bib;
-    });
-
-    sorted.forEach((student, index) => {
-      const card = document.createElement('div');
-      card.className = 'rank-card';
-      if (index === 0 && student.laps > 0) card.classList.add('top-1');
-      if (index === 1 && student.laps > 0) card.classList.add('top-2');
-      if (index === 2 && student.laps > 0) card.classList.add('top-3');
-
-      const leftDiv = document.createElement('div');
-      leftDiv.className = 'rank-card-left';
-
-      const orderSpan = document.createElement('span');
-      orderSpan.className = 'rank-order';
-      orderSpan.textContent = student.rank ? `#${student.rank}` : `-`;
-      leftDiv.appendChild(orderSpan);
-
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'rank-bib-name';
-      nameSpan.textContent = `${student.bibStr} 號`;
-      leftDiv.appendChild(nameSpan);
-
-      card.appendChild(leftDiv);
-
-      const rightDiv = document.createElement('div');
-      rightDiv.className = 'rank-card-right';
-
-      const lapBadge = document.createElement('span');
-      lapBadge.className = 'rank-lap-badge';
-      lapBadge.textContent = `${student.laps} / ${totalLaps} 圈`;
-      rightDiv.appendChild(lapBadge);
-
-      const statusBadge = document.createElement('span');
-      statusBadge.className = 'rank-status-badge';
-      if (student.isFinished) {
-        statusBadge.classList.add('finished');
-        statusBadge.textContent = '已完賽';
-      } else if (totalLaps > 1 && student.laps === totalLaps - 1) {
-        statusBadge.classList.add('final-lap');
-        statusBadge.textContent = '剩最後1圈';
-      } else if (student.laps > 0) {
-        statusBadge.textContent = '競賽中';
-      } else {
-        statusBadge.textContent = '尚未出發';
-      }
-      rightDiv.appendChild(statusBadge);
-
-      card.appendChild(rightDiv);
-      leaderboardList.appendChild(card);
-    });
-  }
-
-  /**
-   * 綁定頂部控制項事件
-   */
-  function bindControlEvents() {
-    totalLapsSelect.addEventListener('change', (e) => {
-      const newTotal = parseInt(e.target.value, 10);
-      if (newTotal >= 1 && newTotal <= 8) {
-        totalLaps = newTotal;
-        students.forEach(s => {
-          if (s.laps >= totalLaps) {
-            s.isFinished = true;
-            if (!s.finishTime) s.finishTime = s.lastUpdated || Date.now();
+      // 計算各學生排名
+      // 規則：
+      // 1. 完賽者：以 finishRank 為主 (先完賽排名在前)
+      // 2. 未完賽者：圈數多者在前；若圈數相同，以先達到該圈數的時間早者在前
+      // 3. 圈數為 0 者：並列後續
+      function calculateRankings() {
+        const ranked = [...students].sort((a, b) => {
+          // 若雙方都完賽
+          if (a.laps >= targetLaps && b.laps >= targetLaps) {
+            return (a.finishRank || 999) - (b.finishRank || 999);
+          }
+          // A完賽 B未完賽
+          if (a.laps >= targetLaps) return -1;
+          if (b.laps >= targetLaps) return 1;
+
+          // 比較圈數
+          if (b.laps !== a.laps) {
+            return b.laps - a.laps;
+          }
+
+          // 圈數相同時
+          if (a.laps > 0) {
+            return a.lastLapTime - b.lastLapTime; // 時間戳記越小代表越先達到
+          }
+
+          return a.id - b.id;
+        });
+
+        // 建立 id -> rank 映射
+        const rankMap = new Map();
+        let currentRank = 1;
+        ranked.forEach((s) => {
+          if (s.laps > 0) {
+            rankMap.set(s.id, currentRank++);
           } else {
-            s.isFinished = false;
-            s.finishTime = 0;
+            rankMap.set(s.id, null);
           }
         });
-        onRaceStateChanged(null, `已將總圈數設定為 ${totalLaps} 圈`);
+
+        return { rankedList: ranked, rankMap };
       }
-    });
 
-    undoBtn.addEventListener('click', () => {
-      undoLastAction();
-    });
+      // 刷新所有 UI
+      function updateAllUI() {
+        const { rankedList, rankMap } = calculateRankings();
 
-    // 重設按鈕 (內聯二階段防呆確認，無彈窗)
-    resetBtn.addEventListener('click', () => {
-      if (!isResetConfirming) {
-        isResetConfirming = true;
-        resetBtn.classList.add('confirming');
-        resetBtnText.textContent = '確定重設?';
+        // 1. 更新 30 個按鈕狀態
+        students.forEach(student => {
+          const btn = document.getElementById(`btn-student-${student.id}`);
+          if (!btn) return;
 
-        if (resetConfirmTimer) clearTimeout(resetConfirmTimer);
-        resetConfirmTimer = setTimeout(() => {
-          isResetConfirming = false;
-          resetBtn.classList.remove('confirming');
-          resetBtnText.textContent = '重設';
-        }, RESET_TIMEOUT_MS);
-      } else {
-        if (resetConfirmTimer) clearTimeout(resetConfirmTimer);
-        isResetConfirming = false;
-        resetBtn.classList.remove('confirming');
-        resetBtnText.textContent = '重設';
+          const lapDisplay = document.getElementById(`lap-num-${student.id}`);
+          const rankTag = document.getElementById(`rank-tag-${student.id}`);
+          const statusIcon = document.getElementById(`status-icon-${student.id}`);
 
-        initStudents();
-        historyStack = [];
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {}
+          lapDisplay.textContent = student.laps;
 
-        onRaceStateChanged(null, '所有圈數與名次已歸零重設');
+          // 清除舊狀態 class
+          btn.classList.remove('in-progress', 'bell-lap', 'finished');
+
+          const rank = rankMap.get(student.id);
+          if (rank !== null && rank !== undefined) {
+            rankTag.textContent = `#${rank}`;
+            rankTag.className = 'rank-tag';
+            if (rank === 1) rankTag.classList.add('p1');
+            else if (rank === 2) rankTag.classList.add('p2');
+            else if (rank === 3) rankTag.classList.add('p3');
+            else if (rank <= 10) rankTag.classList.add('top-ten');
+          } else {
+            rankTag.textContent = '';
+            rankTag.className = 'rank-tag';
+          }
+
+          // 圈數狀態判定
+          if (student.laps >= targetLaps) {
+            // 完賽
+            btn.classList.add('finished');
+            statusIcon.innerHTML = `
+              <svg viewBox="0 0 24 24">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                <line x1="4" y1="22" x2="4" y2="15"></line>
+              </svg>
+            `;
+          } else if (student.laps === targetLaps - 1 && targetLaps > 1) {
+            // 最後一圈！特別提醒
+            btn.classList.add('bell-lap');
+            statusIcon.innerHTML = `
+              <svg viewBox="0 0 24 24">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            `;
+          } else if (student.laps > 0) {
+            // 進行中
+            btn.classList.add('in-progress');
+            statusIcon.innerHTML = '';
+          } else {
+            // 0 圈
+            statusIcon.innerHTML = '';
+          }
+        });
+
+        // 2. 更新頂部即時領先榜 (Ticker)
+        updateTicker(rankedList);
+
+        // 3. 更新浮動名次表 (如果開著)
+        if (leaderModal.classList.contains('show')) {
+          renderLeaderboard(rankedList, rankMap);
+        }
       }
-    });
 
-    viewToggleBtn.addEventListener('click', () => {
-      const isOpen = leaderboardPanel.classList.toggle('active');
-      viewToggleText.textContent = isOpen ? '網格' : '名次';
-      if (isOpen) {
-        renderLeaderboardPanel();
+      // 更新頂部領先跑馬條
+      function updateTicker(rankedList) {
+        const activeRunners = rankedList.filter(s => s.laps > 0);
+        if (activeRunners.length === 0) {
+          tickerItems.innerHTML = '<span style="color:#475569; font-size:0.75rem;">-</span>';
+          return;
+        }
+
+        let html = '';
+        activeRunners.slice(0, 10).forEach((s, idx) => {
+          const rankNum = idx + 1;
+          let rankClass = '';
+          if (rankNum === 1) rankClass = 'rank-1';
+          else if (rankNum === 2) rankClass = 'rank-2';
+          else if (rankNum === 3) rankClass = 'rank-3';
+
+          const isFinished = s.laps >= targetLaps;
+          const isBell = s.laps === targetLaps - 1;
+          const icon = isFinished ? '🏁' : (isBell ? '🔔' : '');
+
+          html += `
+            <div class="ticker-badge ${rankClass}">
+              <span>#${rankNum}</span>
+              <strong>${s.id < 10 ? '0' + s.id : s.id}</strong>
+              <span>${s.laps}/${targetLaps}${icon}</span>
+            </div>
+          `;
+        });
+        tickerItems.innerHTML = html;
       }
-    });
 
-    closeLeaderboardBtn.addEventListener('click', () => {
-      leaderboardPanel.classList.remove('active');
-      viewToggleText.textContent = '名次';
-    });
-  }
+      // 渲染名次總覽抽屜
+      function renderLeaderboard(rankedList, rankMap) {
+        let html = '';
+        rankedList.forEach(s => {
+          const rank = rankMap.get(s.id);
+          const rankText = rank ? `${rank}` : '-';
+          let posColor = '';
+          if (rank === 1) posColor = 'c1';
+          else if (rank === 2) posColor = 'c2';
+          else if (rank === 3) posColor = 'c3';
 
-  /**
-   * 啟動系統
-   */
-  function startApp() {
-    initStudents();
-    const hasSaved = loadSavedState();
-    buildButtonsGrid();
-    bindControlEvents();
-    calculateRankings();
-    renderAllButtons();
-    updateUndoButtonState();
-    updateStatusBanners(hasSaved ? '已恢復上次競賽紀錄' : null);
-  }
+          const isFinished = s.laps >= targetLaps;
+          const isBell = s.laps === targetLaps - 1;
+          const statusText = isFinished ? '🏁' : (isBell ? '🔔' : `${s.laps}/${targetLaps}`);
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startApp);
-  } else {
-    startApp();
-  }
-})();
+          html += `
+            <div class="rank-card-row">
+              <span class="rank-pos ${posColor}">${rankText}</span>
+              <span class="rank-bib">${s.id < 10 ? '0' + s.id : s.id}</span>
+              <span class="rank-lap-badge">${statusText}</span>
+            </div>
+          `;
+        });
+        rankListScroll.innerHTML = html;
+      }
+
+      // 總圈數切換事件
+      btnLapMinus.addEventListener('click', () => {
+        if (targetLaps > 1) {
+          targetLaps--;
+          applyTargetLaps();
+        }
+      });
+
+      btnLapPlus.addEventListener('click', () => {
+        if (targetLaps < 8) {
+          targetLaps++;
+          applyTargetLaps();
+        }
+      });
+
+      function applyTargetLaps() {
+        targetLapsDisplay.textContent = `🏁 ${targetLaps}`;
+        // 更新所有按鈕底部的總圈數顯示
+        for (let i = 1; i <= TOTAL_STUDENTS; i++) {
+          const sub = document.querySelector(`#btn-student-${i} .total-lap-sub`);
+          if (sub) sub.textContent = `/${targetLaps}`;
+        }
+        updateAllUI();
+      }
+
+      // 復原按鈕點擊
+      btnUndo.addEventListener('click', () => {
+        undoLastAction();
+      });
+
+      // 長按重設按鈕 (避免誤觸，需長按 1.2 秒，絕無任何彈窗)
+      let resetTimer = null;
+      let resetStartTime = 0;
+      let resetAnimFrame = null;
+      const RESET_HOLD_TIME = 1200;
+
+      function startResetHold(e) {
+        e.preventDefault();
+        resetStartTime = Date.now();
+
+        function animReset() {
+          const elapsed = Date.now() - resetStartTime;
+          const pct = Math.min(100, (elapsed / RESET_HOLD_TIME) * 100);
+          resetProgress.style.width = pct + '%';
+          if (pct < 100) {
+            resetAnimFrame = requestAnimationFrame(animReset);
+          }
+        }
+        resetAnimFrame = requestAnimationFrame(animReset);
+
+        resetTimer = setTimeout(() => {
+          cancelAnimationFrame(resetAnimFrame);
+          resetProgress.style.width = '0%';
+          executeFullReset();
+          if (navigator.vibrate) {
+            try { navigator.vibrate([80, 50, 80]); } catch (_) {}
+          }
+        }, RESET_HOLD_TIME);
+      }
+
+      function cancelResetHold() {
+        clearTimeout(resetTimer);
+        cancelAnimationFrame(resetAnimFrame);
+        resetProgress.style.width = '0%';
+      }
+
+      function executeFullReset() {
+        students.forEach(s => {
+          s.laps = 0;
+          s.lastLapTime = 0;
+          s.finishRank = null;
+        });
+        historyStack.length = 0;
+        updateUndoButton();
+        updateAllUI();
+      }
+
+      btnReset.addEventListener('pointerdown', startResetHold);
+      btnReset.addEventListener('pointerup', cancelResetHold);
+      btnReset.addEventListener('pointerleave', cancelResetHold);
+      btnReset.addEventListener('pointercancel', cancelResetHold);
+      btnReset.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // 名次總覽彈窗切換
+      btnViewLeaderboard.addEventListener('click', () => {
+        const { rankedList, rankMap } = calculateRankings();
+        renderLeaderboard(rankedList, rankMap);
+        leaderModal.classList.add('show');
+      });
+
+      btnCloseModal.addEventListener('click', () => {
+        leaderModal.classList.remove('show');
+      });
+
+      // 啟動初始化
+      createGridButtons();
+      updateAllUI();
+
+      // 防止 iOS 彈性滾動造成畫面晃動
+      document.body.addEventListener('touchmove', function(e) {
+        if (!e.target.closest('.rank-list-scroll')) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+    })();
   </script>
 </body>
 </html>
