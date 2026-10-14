@@ -624,7 +624,7 @@
           <svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
         </button>
 
-        <!-- 長按重設按鈕 (避免誤觸，長按 1.2 秒重置) -->
+        <!-- 長按重設按鈕 (避免誤觸，長按 0.8 秒重置) -->
         <button class="icon-btn reset-btn" id="btnReset" aria-label="重設">
           <div class="reset-progress" id="resetProgress"></div>
           <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
@@ -1075,11 +1075,11 @@
         undoLastAction();
       });
 
-      // 長按重設按鈕 (避免誤觸，需長按 1.2 秒，絕無任何彈窗)
+      // 長按重設按鈕 (避免誤觸，需長按 0.8 秒，絕無任何彈窗)
       let resetTimer = null;
       let resetStartTime = 0;
       let resetAnimFrame = null;
-      const RESET_HOLD_TIME = 1200;
+      const RESET_HOLD_TIME = 800;
 
       function startResetHold(e) {
         e.preventDefault();
