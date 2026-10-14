@@ -1,82 +1,45 @@
-/* =========================================================
-   GHJH SPORT - 運動會徑賽計圈與即時排名系統
-   設計哲學：高對比大字、一屏全覽無需滑動、極致直覺觸控
-   ========================================================= */
+/* ========================================================
+   GHJH SPORT - 徑賽圈數與名次計數系統 (手機深色模式專用)
+   ======================================================== */
 
 :root {
-  /* 深色運動科技配色 (預設) */
-  --bg-primary: #0b0f19;
-  --bg-surface: #151d2f;
-  --bg-surface-elevated: #1e293b;
+  --bg-primary: #0a0f1d;
+  --bg-secondary: #111827;
+  --bg-card: #1e293b;
+  --bg-card-hover: #283548;
+  
   --border-color: #334155;
+  --border-light: #475569;
+  
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   
-  /* 按鈕狀態配色 */
-  --btn-idle-bg: #1e293b;
-  --btn-idle-border: #475569;
-  --btn-idle-text: #f1f5f9;
+  /* 狀態顏色 */
+  --accent-cyan: #38bdf8;
+  --accent-blue: #2563eb;
+  
+  /* 最後一圈 (警示琥珀金) */
+  --final-lap-bg: rgba(245, 158, 11, 0.22);
+  --final-lap-border: #f59e0b;
+  --final-lap-text: #fef08a;
+  --final-lap-glow: rgba(245, 158, 11, 0.4);
 
-  --btn-running-bg: #1e40af;
-  --btn-running-border: #3b82f6;
-  --btn-running-text: #ffffff;
-
-  /* 最後一圈醒目高亮 (亮橘黃+霓虹警示) */
-  --final-lap-bg: #f59e0b;
-  --final-lap-border: #fbbf24;
-  --final-lap-text: #000000;
-  --final-lap-glow: rgba(245, 158, 11, 0.45);
-
-  /* 完賽配色 */
-  --finished-bg: #065f46;
+  /* 完賽 (活力綠) */
+  --finished-bg: rgba(16, 185, 129, 0.22);
   --finished-border: #10b981;
-  --finished-text: #ecfdf5;
+  --finished-text: #a7f3d0;
 
-  /* 強調與操作鍵 */
-  --accent-undo: #e11d48;
-  --accent-undo-hover: #be123c;
-  --accent-gold: #facc15;
-  --accent-silver: #cbd5e1;
-  --accent-bronze: #d97706;
+  /* 領先/第一名 */
+  --gold: #fbbf24;
+  --silver: #cbd5e1;
+  --bronze: #f97316;
 
-  /* 尺寸與間距 */
-  --app-padding: 6px;
-  --gap-grid: 5px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  /* 系統字體 */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
 }
 
-/* 烈日戶外高對比模式 (操場強光環境) */
-body.theme-outdoor {
-  --bg-primary: #f1f5f9;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #e2e8f0;
-  --border-color: #94a3b8;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-
-  --btn-idle-bg: #ffffff;
-  --btn-idle-border: #64748b;
-  --btn-idle-text: #0f172a;
-
-  --btn-running-bg: #2563eb;
-  --btn-running-border: #1d4ed8;
-  --btn-running-text: #ffffff;
-
-  --final-lap-bg: #ea580c;
-  --final-lap-border: #c2410c;
-  --final-lap-text: #ffffff;
-  --final-lap-glow: rgba(234, 88, 12, 0.5);
-
-  --finished-bg: #047857;
-  --finished-border: #065f46;
-  --finished-text: #ffffff;
-}
-
-/* 全域基礎設定 */
+/* 全域重置 */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -84,772 +47,635 @@ body.theme-outdoor {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 html, body {
   width: 100%;
   height: 100%;
   height: 100dvh;
-  overflow: hidden; /* 嚴格禁止捲動，符合完全不需滑動需求 */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  max-height: 100dvh;
+  overflow: hidden; /* 確保不需滑動畫面即可看到所有編號按鈕 */
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  touch-action: manipulation; /* 防止雙擊螢幕縮放 */
+  font-family: var(--font-family);
+  line-height: 1.2;
 }
 
-/* 應用程式主容器：嚴格 100dvh flex 縱向排版 */
+/* 所有按鈕與文字均不換行 (嚴格符合需求) */
+button, 
+.control-btn, 
+.bib-btn, 
+.btn-text, 
+.alert-tag, 
+.leader-tag, 
+.action-tag,
+.selector-label, 
+.panel-summary {
+  white-space: nowrap !important;
+  text-overflow: ellipsis;
+}
+
+/* 主容器 */
 .app-container {
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100dvh;
-  max-width: 600px; /* 手機端最佳比例限制 */
+  max-width: 600px; /* 適用常見手機寬度 */
   margin: 0 auto;
   position: relative;
+  overflow: hidden;
   background-color: var(--bg-primary);
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-/* ----------------------------------------------------
-   頂部資訊列 (Header)
-   ---------------------------------------------------- */
-.app-header {
+/* 頂部控制面板 */
+.top-bar {
   flex-shrink: 0;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding: 5px 8px 4px 8px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  z-index: 20;
 }
 
 .header-main {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 
-.brand {
+.logo-area {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.brand-badge {
-  font-size: 1.15rem;
+.logo-badge {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
-.brand-title {
-  font-size: 1.05rem;
+.logo-title {
+  font-size: 17px;
   font-weight: 900;
   letter-spacing: 0.5px;
-  color: var(--text-primary);
+  background: linear-gradient(90deg, #ffffff, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
-/* 操作按鈕 (復原、排名、設定) */
-.action-btn {
+/* 總圈數選擇器 */
+.laps-selector-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.selector-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.total-laps-select {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  padding: 2px 0;
+}
+
+.total-laps-select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* 控制按鈕共同樣式 */
+.control-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  height: 34px;
-  padding: 0 9px;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  gap: 3px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 700;
   border: 1px solid var(--border-color);
-  cursor: pointer;
-  background-color: var(--bg-surface-elevated);
+  background-color: var(--bg-card);
   color: var(--text-primary);
+  cursor: pointer;
+  touch-action: manipulation;
   transition: all 0.15s ease;
 }
 
-.action-btn:active {
+.control-btn:active {
   transform: scale(0.95);
 }
 
-/* 復原按鈕特化 (極醒目，避免誤觸) */
-.btn-undo {
-  background-color: var(--accent-undo);
-  border-color: #f43f5e;
-  color: #ffffff;
-  padding: 0 10px;
+.control-btn .btn-icon {
+  font-size: 13px;
 }
 
-.btn-undo:disabled {
-  background-color: var(--bg-surface-elevated);
+/* 復原按鈕 */
+.undo-btn {
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--accent-cyan);
+}
+
+.undo-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
   border-color: var(--border-color);
   color: var(--text-muted);
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
 }
 
-.undo-badge {
-  display: none;
-  background-color: #ffffff;
-  color: #be123c;
-  font-size: 0.72rem;
-  padding: 1px 4px;
-  border-radius: 4px;
-  font-weight: 800;
-  margin-left: 2px;
+/* 重設按鈕 (內聯確認) */
+.reset-btn {
+  background-color: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
 }
 
-.undo-badge.active {
-  display: inline-block;
-}
-
-/* ----------------------------------------------------
-   最後一圈醒目提醒看板 (專為裁判呼喊設計)
-   ---------------------------------------------------- */
-.bell-banner {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: var(--radius-sm);
-  padding: 3px 6px;
-  min-height: 32px;
-  overflow: hidden;
-  transition: all 0.25s ease;
-}
-
-.bell-banner.has-alert {
-  background-color: #f59e0b;
-  border-color: #d97706;
-  color: #000000;
-  box-shadow: 0 0 10px var(--final-lap-glow);
-  animation: pulse-border 1.5s infinite;
-}
-
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-}
-
-.bell-label {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.bell-banner.has-alert .bell-label {
-  color: #000000;
-}
-
-.bell-list {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.bell-list::-webkit-scrollbar {
-  display: none;
-}
-
-.empty-tip {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.bell-banner.has-alert .empty-tip {
-  display: none;
-}
-
-/* 最後一圈號碼徽章 */
-.final-bib-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #000000;
-  color: #facc15;
-  font-size: 0.82rem;
-  font-weight: 900;
-  padding: 1px 7px;
-  border-radius: 4px;
-  border: 1px solid #000000;
-  animation: pop-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes pop-in {
-  0% { transform: scale(0.6); }
-  100% { transform: scale(1); }
-}
-
-/* ----------------------------------------------------
-   領先與目標圈數摘要列
-   ---------------------------------------------------- */
-.leader-strip {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  padding: 0 2px;
-}
-
-.leader-info {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-
-.leader-title {
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.leader-summary {
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.laps-counter {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--text-muted);
-}
-
-.highlight-text {
-  color: #38bdf8;
-  font-weight: 900;
-}
-
-/* ----------------------------------------------------
-   核心號碼按鈕網格 (Grid)
-   確保完全不捲動、填滿剩餘高度
-   ---------------------------------------------------- */
-.grid-main {
-  flex: 1;
-  min-height: 0; /* 關鍵：防止 flex item 溢出造成滾動 */
-  padding: 4px;
-  display: flex;
-  overflow: hidden;
-}
-
-.students-grid {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  /* 5 欄 × 6 列 = 30 個按鈕 */
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(6, 1fr);
-  gap: var(--gap-grid);
-}
-
-/* 單個選手按鈕 */
-.student-btn {
-  position: relative;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--btn-idle-border);
-  background-color: var(--btn-idle-bg);
-  color: var(--btn-idle-text);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2px;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
-  overflow: hidden;
-}
-
-.student-btn:active {
-  transform: scale(0.92);
-}
-
-/* 號碼數字：特大字號、極度醒目 */
-.student-bib {
-  font-size: clamp(1.25rem, 5.2vw, 1.85rem);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 圈數與進度文字 */
-.student-status-text {
-  font-size: clamp(0.68rem, 2.6vw, 0.85rem);
-  font-weight: 700;
-  line-height: 1.1;
-  margin-top: 2px;
-  opacity: 0.9;
-}
-
-/* 右上角即時排名角標 */
-.student-rank-badge {
-  position: absolute;
-  top: 1px;
-  right: 2px;
-  font-size: clamp(0.58rem, 2.1vw, 0.7rem);
-  font-weight: 800;
-  padding: 0 3px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.45);
+.reset-btn.confirming {
+  background-color: #ef4444;
+  border-color: #dc2626;
   color: #ffffff;
-  display: none;
-}
-
-.student-rank-badge.visible {
-  display: block;
-}
-
-.student-rank-badge.rank-1 {
-  background: #facc15;
-  color: #000000;
-}
-
-.student-rank-badge.rank-2 {
-  background: #e2e8f0;
-  color: #000000;
-}
-
-.student-rank-badge.rank-3 {
-  background: #f97316;
-  color: #ffffff;
-}
-
-/* 底部圈數微型進度條 */
-.student-progress-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 3.5px;
-  background-color: rgba(255, 255, 255, 0.2);
-  width: 100%;
-}
-
-.student-progress-fill {
-  height: 100%;
-  width: 0%;
-  background-color: #38bdf8;
-  transition: width 0.2s ease;
-}
-
-/* ----------------------------------------------------
-   選手按鈕各種狀態樣式
-   ---------------------------------------------------- */
-/* 狀態 1：進行中 (1 ~ 總圈數-2) */
-.student-btn.state-running {
-  background-color: var(--btn-running-bg);
-  border-color: var(--btn-running-border);
-  color: var(--btn-running-text);
-}
-
-.student-btn.state-running .student-progress-fill {
-  background-color: #60a5fa;
-}
-
-/* 狀態 2：最後一圈 (剩最後1圈) - 極醒目警示 */
-.student-btn.state-final-lap {
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-  border-color: #fef08a;
-  border-width: 2.5px;
-  color: #000000;
-  box-shadow: 0 0 10px var(--final-lap-glow);
-  animation: final-pulse 1.8s infinite;
-}
-
-@keyframes final-pulse {
-  0%, 100% { border-color: #ffffff; transform: scale(1); }
-  50% { border-color: #fde047; transform: scale(1.02); }
-}
-
-.student-btn.state-final-lap .student-bib {
-  color: #000000;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.student-btn.state-final-lap .student-status-text {
-  color: #000000;
-  font-weight: 900;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0 4px;
-  border-radius: 3px;
-}
-
-.student-btn.state-final-lap .student-progress-fill {
-  background-color: #ffffff;
-}
-
-/* 狀態 3：完賽 (已跑完所有圈數) */
-.student-btn.state-finished {
-  background: var(--finished-bg);
-  border-color: var(--finished-border);
-  color: var(--finished-text);
-  opacity: 0.85;
-}
-
-.student-btn.state-finished .student-progress-fill {
-  background-color: #34d399;
-}
-
-.student-btn.state-finished .student-status-text {
-  color: #a7f3d0;
-  font-weight: 800;
-}
-
-/* 未參賽號碼 (若選手數設定小於30) */
-.student-btn.state-disabled {
-  opacity: 0.15;
-  pointer-events: none;
-  filter: grayscale(1);
-}
-
-/* ----------------------------------------------------
-   底部資訊列 (Footer)
-   ---------------------------------------------------- */
-.app-footer {
-  flex-shrink: 0;
-  background-color: var(--bg-surface);
-  border-top: 1px solid var(--border-color);
-  padding: 3px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
-}
-
-.status-message {
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-message.highlight {
-  color: #facc15;
-  font-weight: 700;
-}
-
-/* ----------------------------------------------------
-   抽屜面板 (Drawer) - 無彈窗、滑出式檢視
-   ---------------------------------------------------- */
-.drawer {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--bg-surface);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(100%);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
-}
-
-.drawer.open {
-  transform: translateY(0);
-}
-
-.drawer-header {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-surface-elevated);
-}
-
-.drawer-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.drawer-icon {
-  font-size: 1.2rem;
-}
-
-.drawer-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.drawer-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.drawer-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.3rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-}
-
-.drawer-close-btn:active {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.drawer-content {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 12px 14px;
-}
-
-/* 排名總表樣式 */
-.rank-table-header {
-  display: grid;
-  grid-template-columns: 50px 70px 1fr 90px;
-  padding: 8px 10px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.rank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.rank-row {
-  display: grid;
-  grid-template-columns: 50px 70px 1fr 90px;
-  align-items: center;
-  padding: 10px 10px;
-  background-color: var(--bg-surface-elevated);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  font-size: 0.9rem;
-}
-
-.rank-row.top-1 {
-  border-left: 4px solid var(--accent-gold);
-}
-.rank-row.top-2 {
-  border-left: 4px solid var(--accent-silver);
-}
-.rank-row.top-3 {
-  border-left: 4px solid var(--accent-bronze);
-}
-
-.rank-row.status-final {
-  background-color: rgba(245, 158, 11, 0.15);
-  border-color: #f59e0b;
-}
-
-.rank-row.status-finished {
-  background-color: rgba(16, 185, 129, 0.15);
-  border-color: #10b981;
-}
-
-.col-rank-num {
-  font-weight: 900;
-  font-size: 1.05rem;
-}
-
-.col-bib-num {
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: #38bdf8;
-}
-
-.col-laps-detail {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-align: center;
-}
-
-.status-tag.tag-running {
-  background-color: #1e3a8a;
-  color: #93c5fd;
-}
-
-.status-tag.tag-final {
-  background-color: #f59e0b;
-  color: #000000;
-}
-
-.status-tag.tag-done {
-  background-color: #059669;
-  color: #ecfdf5;
-}
-
-/* ----------------------------------------------------
-   設定抽屜樣式
-   ---------------------------------------------------- */
-.settings-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.setting-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.setting-label {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.setting-tip {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.number-stepper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.stepper-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 1.4rem;
-  font-weight: 800;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stepper-btn:active {
-  background-color: #334155;
-}
-
-.number-stepper input {
-  width: 80px;
-  height: 44px;
-  text-align: center;
-  font-size: 1.3rem;
-  font-weight: 900;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.setting-divider {
-  height: 1px;
-  background-color: var(--border-color);
-  margin: 6px 0;
-}
-
-.setting-danger-zone {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background-color: rgba(225, 29, 72, 0.08);
-  border: 1px solid rgba(225, 29, 72, 0.3);
-  border-radius: var(--radius-sm);
-}
-
-.danger-title {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #f43f5e;
-}
-
-.danger-desc {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.btn-danger-confirm {
-  width: 100%;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  border: 1px solid #f43f5e;
-  background-color: #be123c;
-  color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 800;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.btn-danger-confirm.confirming {
-  background-color: #e11d48;
-  border-color: #ffffff;
-  animation: pulse-danger 0.8s infinite;
+  animation: pulse-danger 0.8s infinite alternate;
 }
 
 @keyframes pulse-danger {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(0.98); }
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
 }
 
-.drawer-backdrop {
-  display: none;
+/* 名次榜切換按鈕 */
+.toggle-view-btn {
+  background-color: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: var(--gold);
+}
+
+/* 即時資訊跑馬燈條 */
+.status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background-color: rgba(15, 23, 42, 0.8);
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-height: 28px;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.banner-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* 剩最後一圈提醒專區 (高對比琥珀黃) */
+.final-lap-alert {
+  background: var(--final-lap-bg);
+  border: 1px solid var(--final-lap-border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--final-lap-text);
+  font-weight: 800;
+  animation: pulse-alert 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-alert {
+  0%, 100% { box-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 8px var(--final-lap-glow); }
+}
+
+.alert-tag {
+  color: #fbbf24;
+  font-weight: 900;
+}
+
+.alert-list {
+  color: #fffbeb;
+  font-weight: 800;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leader-tag {
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.leader-list {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.last-action-info {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.action-tag {
+  background: #334155;
+  color: #cbd5e1;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-right: 3px;
+}
+
+/* ========================================================
+   按鈕網格區：30 個按鈕免滑動全螢幕配置
+   5 欄 x 6 列 = 30 個學生按鈕
+   ======================================================== */
+.grid-container {
+  flex: 1;
+  min-height: 0; /* 關鍵：防止 flex 子元件撐破螢幕引發滾動 */
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
+  padding: 4px;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-primary);
+  box-sizing: border-box;
+}
+
+/* 學生號碼衣服按鈕 */
+.bib-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+  transition: transform 0.1s ease, border-color 0.15s ease, background-color 0.15s ease;
+  min-width: 0;
+  min-height: 0;
+  padding: 2px;
+}
+
+/* 長按時的進度填滿覆蓋條 (視覺回饋，無彈窗、無音效) */
+.bib-btn .press-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background: rgba(239, 68, 68, 0.35);
+  pointer-events: none;
+  transition: width 0.45s linear;
+  z-index: 1;
+}
+
+.bib-btn.pressing .press-progress {
+  width: 100%;
+}
+
+.bib-btn:active {
+  transform: scale(0.94);
+}
+
+/* 學生號碼：大字體、高對比 */
+.bib-number {
+  font-size: clamp(17px, 4.8vw, 24px);
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 2px;
+  letter-spacing: -0.5px;
+  z-index: 2;
+  white-space: nowrap !important;
+}
+
+/* 圈數顯示：例如 "3/8圈" */
+.bib-laps {
+  font-size: clamp(10px, 2.7vw, 13px);
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1;
+  margin-bottom: 2px;
+  z-index: 2;
+  white-space: nowrap !important;
+}
+
+/* 名次/狀態徽章 */
+.bib-status {
+  font-size: clamp(9px, 2.4vw, 11px);
+  font-weight: 800;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background-color: rgba(15, 23, 42, 0.7);
+  color: var(--text-muted);
+  z-index: 2;
+  white-space: nowrap !important;
+}
+
+/* 進行中狀態 (已有圈數) */
+.bib-btn.running {
+  border-color: rgba(56, 189, 248, 0.5);
+  background-color: #172554;
+}
+
+.bib-btn.running .bib-number {
+  color: #ffffff;
+}
+
+.bib-btn.running .bib-laps {
+  color: var(--accent-cyan);
+}
+
+.bib-btn.running .bib-status {
+  color: #93c5fd;
+  background-color: rgba(30, 58, 138, 0.8);
+}
+
+/* 前三名特別顏色徽章 */
+.bib-btn.rank-1 .bib-status {
+  background-color: var(--gold);
+  color: #000000;
+}
+.bib-btn.rank-2 .bib-status {
+  background-color: var(--silver);
+  color: #000000;
+}
+.bib-btn.rank-3 .bib-status {
+  background-color: var(--bronze);
+  color: #ffffff;
+}
+
+/* 剩最後一圈提醒狀態 (琥珀金高亮 + 醒目標示) */
+.bib-btn.final-lap {
+  background-color: var(--final-lap-bg) !important;
+  border-color: var(--final-lap-border) !important;
+  border-width: 2px !important;
+}
+
+.bib-btn.final-lap .bib-number {
+  color: #ffffff;
+}
+
+.bib-btn.final-lap .bib-laps {
+  color: var(--final-lap-text);
+  font-weight: 900;
+}
+
+.bib-btn.final-lap .bib-status {
+  background-color: #f59e0b;
+  color: #000000;
+  font-weight: 900;
+}
+
+/* 完賽狀態 (翡翠綠高亮 + 鎖定名次) */
+.bib-btn.finished {
+  background-color: var(--finished-bg) !important;
+  border-color: var(--finished-border) !important;
+  opacity: 0.92;
+}
+
+.bib-btn.finished .bib-number {
+  color: #ffffff;
+}
+
+.bib-btn.finished .bib-laps {
+  color: var(--finished-text);
+}
+
+.bib-btn.finished .bib-status {
+  background-color: #10b981;
+  color: #000000;
+  font-weight: 900;
+}
+
+/* 點擊瞬間微動畫 */
+@keyframes tap-flash {
+  0% { transform: scale(1.08); filter: brightness(1.4); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.bib-btn.just-updated {
+  animation: tap-flash 0.22s ease-out;
+}
+
+/* ========================================================
+   名次榜抽屜面板 (可快速展開供老師謄寫全體排名)
+   ======================================================== */
+.leaderboard-panel {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 90;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(10, 15, 29, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.drawer-backdrop.active {
-  display: block;
+.leaderboard-panel.active {
+  transform: translateY(0);
 }
 
-/* 橫向模式適配 (若使用者將手機橫放) */
-@media (orientation: landscape) {
-  .students-grid {
-    grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: repeat(5, 1fr);
+.panel-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.panel-title-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-title-icon {
+  font-size: 18px;
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.close-panel-btn {
+  background-color: #334155;
+  color: #ffffff;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 名次項目卡片 */
+.rank-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.rank-card.top-1 { border-color: var(--gold); background: rgba(251, 191, 36, 0.12); }
+.rank-card.top-2 { border-color: var(--silver); background: rgba(203, 213, 225, 0.1); }
+.rank-card.top-3 { border-color: var(--bronze); background: rgba(249, 115, 22, 0.1); }
+
+.rank-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rank-order {
+  font-size: 15px;
+  font-weight: 900;
+  width: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.rank-card.top-1 .rank-order { color: var(--gold); }
+.rank-card.top-2 .rank-order { color: var(--silver); }
+.rank-card.top-3 .rank-order { color: var(--bronze); }
+
+.rank-bib-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.rank-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rank-lap-badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: rgba(56, 189, 248, 0.15);
+  color: var(--accent-cyan);
+}
+
+.rank-status-badge {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+.rank-status-badge.final-lap {
+  background-color: #f59e0b;
+  color: #000000;
+}
+
+.rank-status-badge.finished {
+  background-color: #10b981;
+  color: #000000;
+}
+
+/* 極窄或極小螢幕優化 (iPhone SE 568px / 667px 高度等) */
+@media (max-height: 670px) {
+  .top-bar {
+    padding: 3px 6px;
+    gap: 2px;
+  }
+  .logo-title {
+    font-size: 15px;
+  }
+  .control-btn {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  .status-banner {
+    min-height: 24px;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  .grid-container {
+    gap: 2px;
+    padding: 2px;
+  }
+  .bib-btn {
+    border-radius: 5px;
+    padding: 1px;
   }
 }

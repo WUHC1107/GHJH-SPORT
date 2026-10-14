@@ -1,717 +1,655 @@
 /**
- * GHJH SPORT - 運動會徑賽計圈與即時排名系統
- * 特性：高對比大字、一屏全覽、零滑動、多步復原、零彈窗、零音效、純前端離線
+ * GHJH SPORT - 徑賽圈數與名次計數系統
+ * 專為手機端設計，深色模式，免伺服器，無彈窗，防誤觸
  */
 
-(function () {
+(() => {
   'use strict';
 
-  // ----------------------------------------------------
-  // 常數與初始設定
-  // ----------------------------------------------------
-  const STORAGE_KEY = 'GHJH_SPORT_STATE_V1';
-  const DEFAULT_TOTAL_LAPS = 8;       // 預設至多 8 圈
-  const DEFAULT_ATHLETES_COUNT = 30;  // 預設 30 位學生
+  // 系統常數
+  const TOTAL_STUDENTS = 30;
+  const LONG_PRESS_MS = 450; // 長按判定時間 (毫秒)
+  const RESET_TIMEOUT_MS = 3000; // 重設確認倒數 (毫秒)
+  const STORAGE_KEY = 'GHJH_SPORT_RACE_STATE_V1';
 
-  // 全域狀態
-  let state = {
-    totalLaps: DEFAULT_TOTAL_Laps_Safe(DEFAULT_TOTAL_LAPS),
-    totalAthletes: DEFAULT_ATHLETES_COUNT,
-    athletes: [],       // 陣列長度 30
-    history: [],        // 動作歷程 (用於 Undo)
-    actionSeq: 0,       // 全域動作序號計數器
-    finishCount: 0,     // 已完賽人數
-    outdoorTheme: false // 戶外烈日高對比模式
-  };
+  // DOM 元素引用
+  const gridContainer = document.getElementById('gridContainer');
+  const totalLapsSelect = document.getElementById('totalLapsSelect');
+  const undoBtn = document.getElementById('undoBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const resetBtnText = document.getElementById('resetBtnText');
+  const viewToggleBtn = document.getElementById('viewToggleBtn');
+  const viewToggleText = document.getElementById('viewToggleText');
+  const leaderboardPanel = document.getElementById('leaderboardPanel');
+  const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+  const leaderboardList = document.getElementById('leaderboardList');
+  const panelSummary = document.getElementById('panelSummary');
 
-  function DEFAULT_TOTAL_Laps_Safe(val) {
-    return Math.max(1, Math.min(20, parseInt(val, 10) || 8));
-  }
+  // 跑馬燈元素
+  const finalLapAlert = document.getElementById('finalLapAlert');
+  const finalLapList = document.getElementById('finalLapList');
+  const raceLeaderInfo = document.getElementById('raceLeaderInfo');
+  const raceLeaderList = document.getElementById('raceLeaderList');
+  const lastActionInfo = document.getElementById('lastActionInfo');
 
-  // ----------------------------------------------------
-  // DOM 元素快取
-  // ----------------------------------------------------
-  const elements = {
-    gridContainer: document.getElementById('gridContainer'),
-    btnUndo: document.getElementById('btnUndo'),
-    undoTargetBadge: document.getElementById('undoTargetBadge'),
-    bellBanner: document.getElementById('bellBanner'),
-    finalLapList: document.getElementById('finalLapList'),
-    leaderSummary: document.getElementById('leaderSummary'),
-    targetLapsDisplay: document.getElementById('targetLapsDisplay'),
-    statusMessage: document.getElementById('statusMessage'),
+  // 狀態變數
+  let totalLaps = parseInt(totalLapsSelect.value, 10) || 8;
+  let students = []; // 30位學生的資料
+  let historyStack = []; // 復原操作堆疊
+  let resetConfirmTimer = null; // 重設二階段確認計時器
+  let isResetConfirming = false;
 
-    // 抽屜與按鈕
-    btnRankToggle: document.getElementById('btnRankToggle'),
-    rankDrawer: document.getElementById('rankDrawer'),
-    btnCloseRank: document.getElementById('btnCloseRank'),
-    rankListContainer: document.getElementById('rankListContainer'),
-    rankDrawerLapInfo: document.getElementById('rankDrawerLapInfo'),
-
-    btnSettingsToggle: document.getElementById('btnSettingsToggle'),
-    settingsDrawer: document.getElementById('settingsDrawer'),
-    btnCloseSettings: document.getElementById('btnCloseSettings'),
-    inputTotalLaps: document.getElementById('inputTotalLaps'),
-    btnLapMinus: document.getElementById('btnLapMinus'),
-    btnLapPlus: document.getElementById('btnLapPlus'),
-    inputTotalAthletes: document.getElementById('inputTotalAthletes'),
-    btnAthMinus: document.getElementById('btnAthMinus'),
-    btnAthPlus: document.getElementById('btnAthPlus'),
-    btnResetMatch: document.getElementById('btnResetMatch'),
-    resetBtnText: document.getElementById('resetBtnText'),
-
-    btnThemeToggle: document.getElementById('btnThemeToggle'),
-    themeIcon: document.getElementById('themeIcon'),
-    drawerBackdrop: document.getElementById('drawerBackdrop')
-  };
-
-  // ----------------------------------------------------
-  // 狀態初始化與 LocalStorage 持久化
-  // ----------------------------------------------------
-  function initAthletes() {
-    state.athletes = [];
-    for (let i = 1; i <= 30; i++) {
-      state.athletes.push({
-        id: i,
-        bib: i < 10 ? '0' + i : '' + i,
+  /**
+   * 初始化學生資料
+   */
+  function initStudents() {
+    students = [];
+    for (let i = 1; i <= TOTAL_STUDENTS; i++) {
+      students.push({
+        bib: i,
+        bibStr: i < 10 ? `0${i}` : `${i}`,
         laps: 0,
-        lastTimestamp: 0,
-        lastSeq: 0,
-        finishRank: null, // 完賽名次 (1, 2, 3...)
-        finishTime: null
+        lastUpdated: 0, // 完成最近一圈的時間戳記
+        finishTime: 0,  // 完賽時間戳記
+        isFinished: false,
+        rank: null
       });
     }
   }
 
-  function loadState() {
+  /**
+   * 載入儲存的狀態 (若有)
+   */
+  function loadSavedState() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        state.totalLaps = parsed.totalLaps || DEFAULT_TOTAL_LAPS;
-        state.totalAthletes = parsed.totalAthletes || DEFAULT_ATHLETES_COUNT;
-        state.athletes = parsed.athletes || [];
-        state.history = parsed.history || [];
-        state.actionSeq = parsed.actionSeq || 0;
-        state.finishCount = parsed.finishCount || 0;
-        state.outdoorTheme = !!parsed.outdoorTheme;
-
-        // 確保 30 位選手結構完整
-        if (!state.athletes || state.athletes.length !== 30) {
-          initAthletes();
+        const data = JSON.parse(saved);
+        if (data && Array.isArray(data.students) && data.students.length === TOTAL_STUDENTS) {
+          students = data.students;
+          totalLaps = data.totalLaps || 8;
+          totalLapsSelect.value = totalLaps;
+          historyStack = Array.isArray(data.historyStack) ? data.historyStack : [];
+          return true;
         }
-      } else {
-        initAthletes();
       }
     } catch (e) {
-      console.warn('無法讀取本地儲存，重新初始化', e);
-      initAthletes();
+      console.warn('載入暫存紀錄失敗', e);
     }
+    return false;
   }
 
-  function saveState() {
+  /**
+   * 儲存當前狀態到 localStorage
+   */
+  function persistState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        totalLaps: state.totalLaps,
-        totalAthletes: state.totalAthletes,
-        athletes: state.athletes,
-        history: state.history,
-        actionSeq: state.actionSeq,
-        finishCount: state.finishCount,
-        outdoorTheme: state.outdoorTheme
+        students,
+        totalLaps,
+        historyStack
       }));
     } catch (e) {
-      // 避免儲存空間滿時報錯
+      // 靜默處理
     }
   }
 
-  // ----------------------------------------------------
-  // 排名計算核心算法
-  // ----------------------------------------------------
+  /**
+   * 計算並更新全體名次
+   */
   function calculateRankings() {
-    const activeAthletes = state.athletes.filter(a => a.id <= state.totalAthletes);
-
-    // 排序權重：
-    // 1. 已完賽者最前 (finishRank 由小到大)
-    // 2. 未完賽者依完成圈數 laps 由大到小
-    // 3. 圈數相同時，依據達成最後一圈的 sequence/timestamp 先後 (先達成者前)
-    // 4. 0 圈者依號碼由小到大排列在後
-    const sorted = [...activeAthletes].sort((a, b) => {
-      const aDone = a.laps >= state.totalLaps;
-      const bDone = b.laps >= state.totalLaps;
-
-      if (aDone && bDone) {
-        return (a.finishRank || 999) - (b.finishRank || 999);
+    // 排序邏輯：
+    // 1. 完賽者優先，依完賽時間戳記 (finishTime) 升冪排序
+    // 2. 進行中者，依完成圈數 (laps) 降冪排序
+    // 3. 圈數相同者，依達到該圈數的時間戳記 (lastUpdated) 升冪排序 (先到者領先)
+    // 4. 0 圈者列於最後，依號碼牌升冪排序
+    const sorted = [...students].sort((a, b) => {
+      // 若兩者都完賽
+      if (a.isFinished && b.isFinished) {
+        return a.finishTime - b.finishTime;
       }
-      if (aDone && !bDone) return -1;
-      if (!aDone && bDone) return 1;
+      // 其中一人完賽
+      if (a.isFinished) return -1;
+      if (b.isFinished) return 1;
 
-      // 雙方皆未完賽
-      if (a.laps !== b.laps) {
-        return b.laps - a.laps; // 圈數多者領先
+      // 圈數不同
+      if (b.laps !== a.laps) {
+        return b.laps - a.laps;
       }
 
-      // 圈數相同
+      // 圈數相同且 > 0：比較誰先達到此圈
       if (a.laps > 0) {
-        return a.lastSeq - b.lastSeq; // 先完成該圈者領先
+        return a.lastUpdated - b.lastUpdated;
       }
 
-      return a.id - b.id; // 均為 0 圈按號碼排
+      // 0 圈：依號碼排序
+      return a.bib - b.bib;
     });
 
-    // 映射當前即時名次 (1 ~ totalAthletes)
+    // 分配排名
+    let currentRank = 1;
+    sorted.forEach((student, index) => {
+      if (student.laps > 0) {
+        student.rank = currentRank++;
+      } else {
+        student.rank = null; // 尚未開始計圈
+      }
+    });
+
+    // 建立快取映射
     const rankMap = new Map();
-    sorted.forEach((athlete, index) => {
-      rankMap.set(athlete.id, index + 1);
-    });
-
-    return { sorted, rankMap };
+    students.forEach(s => rankMap.set(s.bib, s.rank));
+    return rankMap;
   }
 
-  // ----------------------------------------------------
-  // 核心計圈與操作邏輯
-  // ----------------------------------------------------
-  let clickCoolDowns = new Map(); // 針對單一號碼防連按抖動 (300ms)
+  /**
+   * 增加圈數 (短按)
+   * @param {number} bib - 學生號碼 (1-30)
+   */
+  function incrementLap(bib) {
+    const student = students.find(s => s.bib === bib);
+    if (!student) return;
 
-  function recordLap(athleteId) {
-    const now = Date.now();
-    const lastClick = clickCoolDowns.get(athleteId) || 0;
-    if (now - lastClick < 300) {
-      return; // 忽略過於快速的誤連按
-    }
-    clickCoolDowns.set(athleteId, now);
-
-    const athlete = state.athletes.find(a => a.id === athleteId);
-    if (!athlete || athlete.id > state.totalAthletes) return;
-
-    if (athlete.laps >= state.totalLaps) {
-      showStatusMessage(`#${athlete.bib} 號已完賽 (第 ${athlete.finishRank} 名)`, true);
+    if (student.laps >= totalLaps) {
+      // 已完賽，不重複增加
+      flashButton(bib);
       return;
     }
 
-    // 儲存操作前快照 (供 Undo)
-    state.actionSeq++;
-    const prevLaps = athlete.laps;
-    const prevTimestamp = athlete.lastTimestamp;
-    const prevSeq = athlete.lastSeq;
-    const prevFinishRank = athlete.finishRank;
+    const now = Date.now();
+    const prevLaps = student.laps;
+    const prevLastUpdated = student.lastUpdated;
+    const prevFinishTime = student.finishTime;
+    const prevFinished = student.isFinished;
 
-    // 推進 1 圈
-    athlete.laps++;
-    athlete.lastTimestamp = now;
-    athlete.lastSeq = state.actionSeq;
+    student.laps += 1;
+    student.lastUpdated = now;
 
-    // 檢查是否完賽
-    let newlyFinished = false;
-    if (athlete.laps >= state.totalLaps) {
-      state.finishCount++;
-      athlete.finishRank = state.finishCount;
-      athlete.finishTime = now;
-      newlyFinished = true;
+    if (student.laps >= totalLaps) {
+      student.isFinished = true;
+      student.finishTime = now;
     }
 
-    // 記錄至歷史堆疊 (支援多步 Undo)
-    state.history.push({
-      action: 'LAP_INCREMENT',
-      athleteId: athlete.id,
-      bib: athlete.bib,
+    // 推入復原堆疊
+    historyStack.push({
+      action: 'increment',
+      bib: bib,
       prevLaps,
-      prevTimestamp,
-      prevSeq,
-      prevFinishRank,
-      newlyFinished
+      prevLastUpdated,
+      prevFinishTime,
+      prevFinished,
+      newLap: student.laps,
+      timeText: `${student.bibStr}號 +1圈(${student.laps}/${totalLaps})`
     });
 
-    // 狀態反饋
-    const isFinalLap = (athlete.laps === state.totalLaps - 1);
-    if (newlyFinished) {
-      showStatusMessage(`🏁 #${athlete.bib} 號完賽！獲得第 ${athlete.finishRank} 名`, true);
-    } else if (isFinalLap) {
-      showStatusMessage(`🔔 #${athlete.bib} 號進入最後 1 圈！請提醒選手！`, true);
-    } else {
-      showStatusMessage(`✓ #${athlete.bib} 號完成第 ${athlete.laps}/${state.totalLaps} 圈`);
-    }
-
-    // 震動微反饋 (若支援)
-    if (navigator.vibrate) {
-      if (isFinalLap) {
-        navigator.vibrate([80, 50, 80]); // 醒目短震動兩次
-      } else {
-        navigator.vibrate(35); // 輕微觸控確認
-      }
-    }
-
-    saveState();
-    render();
+    onRaceStateChanged(bib, `已記錄 ${student.bibStr}號 第${student.laps}圈`);
   }
 
-  // 復原按鈕 (Undo)
+  /**
+   * 減少圈數 (長按)
+   * @param {number} bib - 學生號碼 (1-30)
+   */
+  function decrementLap(bib) {
+    const student = students.find(s => s.bib === bib);
+    if (!student || student.laps <= 0) {
+      flashButton(bib);
+      return;
+    }
+
+    const prevLaps = student.laps;
+    const prevLastUpdated = student.lastUpdated;
+    const prevFinishTime = student.finishTime;
+    const prevFinished = student.isFinished;
+
+    student.laps -= 1;
+    student.isFinished = false;
+    student.finishTime = 0;
+    student.lastUpdated = Date.now();
+
+    // 推入復原堆疊
+    historyStack.push({
+      action: 'decrement',
+      bib: bib,
+      prevLaps,
+      prevLastUpdated,
+      prevFinishTime,
+      prevFinished,
+      newLap: student.laps,
+      timeText: `${student.bibStr}號 -1圈(${student.laps}/${totalLaps})`
+    });
+
+    onRaceStateChanged(bib, `修正扣除 ${student.bibStr}號 1圈 (現為${student.laps}圈)`);
+  }
+
+  /**
+   * 執行復原
+   */
   function undoLastAction() {
-    if (state.history.length === 0) return;
+    if (historyStack.length === 0) return;
 
-    const lastAction = state.history.pop();
-    const athlete = state.athletes.find(a => a.id === lastAction.athleteId);
+    const lastAction = historyStack.pop();
+    const student = students.find(s => s.bib === lastAction.bib);
+    if (!student) return;
 
-    if (lastAction.action === 'LAP_INCREMENT') {
-      if (lastAction.newlyFinished) {
-        state.finishCount = Math.max(0, state.finishCount - 1);
-      }
-      athlete.laps = lastAction.prevLaps;
-      athlete.lastTimestamp = lastAction.prevTimestamp;
-      athlete.lastSeq = lastAction.prevSeq;
-      athlete.finishRank = lastAction.prevFinishRank;
+    student.laps = lastAction.prevLaps;
+    student.lastUpdated = lastAction.prevLastUpdated;
+    student.finishTime = lastAction.prevFinishTime;
+    student.isFinished = lastAction.prevFinished;
 
-      showStatusMessage(`↶ 已復原：#${athlete.bib} 號回到 ${athlete.laps} 圈`, true);
-    } else if (lastAction.action === 'LAP_DECREMENT') {
-      // 復原先前的手動減圈
-      athlete.laps = lastAction.prevLaps;
-      athlete.lastTimestamp = lastAction.prevTimestamp;
-      athlete.lastSeq = lastAction.prevSeq;
-      athlete.finishRank = lastAction.prevFinishRank;
-
-      showStatusMessage(`↶ 已復原：#${athlete.bib} 號還原為 ${athlete.laps} 圈`, true);
-    }
-
-    saveState();
-    render();
+    onRaceStateChanged(student.bib, `已復原 ${student.bibStr}號 上次操作`);
   }
 
-  // 手動減 1 圈 (長按號碼按鈕觸發，用於個別號碼校正)
-  function decrementLap(athleteId) {
-    const athlete = state.athletes.find(a => a.id === athleteId);
-    if (!athlete || athlete.laps <= 0) return;
+  /**
+   * 比賽狀態改變後的統一處理
+   * @param {number} updatedBib - 剛更新的號碼
+   * @param {string} logText - 操作提示字串
+   */
+  function onRaceStateChanged(updatedBib, logText) {
+    calculateRankings();
+    renderAllButtons();
+    updateStatusBanners(logText);
+    updateUndoButtonState();
+    persistState();
 
-    state.actionSeq++;
-    const prevLaps = athlete.laps;
-    const prevTimestamp = athlete.lastTimestamp;
-    const prevSeq = athlete.lastSeq;
-    const prevFinishRank = athlete.finishRank;
-    const wasFinished = (athlete.laps >= state.totalLaps);
-
-    if (wasFinished) {
-      state.finishCount = Math.max(0, state.finishCount - 1);
-      athlete.finishRank = null;
-      athlete.finishTime = null;
+    if (updatedBib) {
+      flashButton(updatedBib);
     }
-
-    athlete.laps--;
-    athlete.lastTimestamp = Date.now();
-    athlete.lastSeq = state.actionSeq;
-
-    state.history.push({
-      action: 'LAP_DECREMENT',
-      athleteId: athlete.id,
-      bib: athlete.bib,
-      prevLaps,
-      prevTimestamp,
-      prevSeq,
-      prevFinishRank,
-      wasFinished
-    });
-
-    showStatusMessage(`⚠️ 已將 #${athlete.bib} 號倒退 1 圈 (現為 ${athlete.laps} 圈)`, true);
-
-    if (navigator.vibrate) {
-      navigator.vibrate(60);
-    }
-
-    saveState();
-    render();
   }
 
-  // ----------------------------------------------------
-  // 重置比賽 (雙重無彈窗確認)
-  // ----------------------------------------------------
-  let resetConfirmTimer = null;
-  function handleResetMatch() {
-    if (!elements.btnResetMatch.classList.contains('confirming')) {
-      // 第一次點擊：進入確認狀態
-      elements.btnResetMatch.classList.add('confirming');
-      elements.resetBtnText.textContent = '⚠️ 請在 3 秒內再點一次以確認重設！';
+  /**
+   * 按鈕視覺微動畫
+   */
+  function flashButton(bib) {
+    const btn = document.getElementById(`bib-btn-${bib}`);
+    if (btn) {
+      btn.classList.remove('just-updated');
+      void btn.offsetWidth; // 強制重繪
+      btn.classList.add('just-updated');
+    }
+  }
 
-      clearTimeout(resetConfirmTimer);
-      resetConfirmTimer = setTimeout(() => {
-        elements.btnResetMatch.classList.remove('confirming');
-        elements.resetBtnText.textContent = '重新開始新比賽';
-      }, 3000);
+  /**
+   * 更新復原按鈕狀態
+   */
+  function updateUndoButtonState() {
+    if (historyStack.length > 0) {
+      const topAction = historyStack[historyStack.length - 1];
+      const bibStr = topAction.bib < 10 ? `0${topAction.bib}` : `${topAction.bib}`;
+      undoBtn.disabled = false;
+      undoBtn.querySelector('.btn-text').textContent = `復原(${bibStr}號)`;
     } else {
-      // 第二次點擊：真正重置
-      clearTimeout(resetConfirmTimer);
-      elements.btnResetMatch.classList.remove('confirming');
-      elements.resetBtnText.textContent = '重新開始新比賽';
-
-      initAthletes();
-      state.history = [];
-      state.actionSeq = 0;
-      state.finishCount = 0;
-
-      saveState();
-      closeDrawers();
-      render();
-      showStatusMessage('✨ 比賽數據已重置，準備開始！', true);
+      undoBtn.disabled = true;
+      undoBtn.querySelector('.btn-text').textContent = '復原';
     }
   }
 
-  // ----------------------------------------------------
-  // 介面渲染 (Render)
-  // ----------------------------------------------------
-  function render() {
-    const { sorted, rankMap } = calculateRankings();
-    const finalLapAthletes = [];
+  /**
+   * 更新頂部狀態跑馬燈與最後一圈醒目提醒
+   */
+  function updateStatusBanners(logText) {
+    if (logText) {
+      lastActionInfo.querySelector('.action-desc').textContent = logText;
+    }
 
-    // 1. 渲染 30 個選手號碼按鈕
-    elements.gridContainer.innerHTML = '';
-    
-    state.athletes.forEach(athlete => {
-      const btn = document.createElement('div');
-      btn.className = 'student-btn';
-      btn.dataset.id = athlete.id;
+    // 1. 檢查是否有學生進入最後一圈
+    // 當 totalLaps > 1 時，完成了 totalLaps - 1 圈即代表正在跑最後一圈
+    const finalLapRunners = students
+      .filter(s => !s.isFinished && totalLaps > 1 && s.laps === totalLaps - 1)
+      .map(s => `${s.bibStr}號`);
 
-      // 檢查是否超出參賽人數
-      if (athlete.id > state.totalAthletes) {
-        btn.classList.add('state-disabled');
-      }
+    if (finalLapRunners.length > 0) {
+      finalLapAlert.style.display = 'flex';
+      finalLapList.textContent = finalLapRunners.join('、');
+      raceLeaderInfo.style.display = 'none'; // 讓出空間給最後一圈警示
+    } else {
+      finalLapAlert.style.display = 'none';
+      raceLeaderInfo.style.display = 'flex';
 
-      const isFinished = athlete.laps >= state.totalLaps;
-      const isFinalLap = !isFinished && athlete.laps === (state.totalLaps - 1);
-      const isRunning = !isFinished && !isFinalLap && athlete.laps > 0;
+      // 顯示目前領先者 (前2名)
+      const leaders = students
+        .filter(s => s.laps > 0)
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+        .slice(0, 2)
+        .map(s => `${s.bibStr}號(${s.isFinished ? '完賽' : s.laps + '圈'})`);
 
-      if (isFinished) {
-        btn.classList.add('state-finished');
-      } else if (isFinalLap) {
-        btn.classList.add('state-final-lap');
-        if (athlete.id <= state.totalAthletes) {
-          finalLapAthletes.push(athlete);
-        }
-      } else if (isRunning) {
-        btn.classList.add('state-running');
-      }
-
-      // 號碼數字
-      const bibEl = document.createElement('div');
-      bibEl.className = 'student-bib';
-      bibEl.textContent = athlete.bib;
-
-      // 圈數與狀態文字
-      const statusEl = document.createElement('div');
-      statusEl.className = 'student-status-text';
-      if (isFinished) {
-        statusEl.textContent = `完賽 No.${athlete.finishRank}`;
-      } else if (isFinalLap) {
-        statusEl.textContent = `🔔剩1圈`;
-      } else if (athlete.laps === 0) {
-        statusEl.textContent = `0圈`;
+      if (leaders.length > 0) {
+        raceLeaderList.textContent = leaders.join(' ｜ ');
       } else {
-        statusEl.textContent = `${athlete.laps}/${state.totalLaps}圈`;
+        raceLeaderList.textContent = '比賽進行中';
       }
-
-      // 右上角即時排名小角標 (有跑動時才顯示)
-      const rankBadge = document.createElement('div');
-      rankBadge.className = 'student-rank-badge';
-      if (athlete.laps > 0 && athlete.id <= state.totalAthletes) {
-        const curRank = rankMap.get(athlete.id);
-        rankBadge.textContent = `#${curRank}`;
-        rankBadge.classList.add('visible');
-        if (curRank === 1) rankBadge.classList.add('rank-1');
-        else if (curRank === 2) rankBadge.classList.add('rank-2');
-        else if (curRank === 3) rankBadge.classList.add('rank-3');
-      }
-
-      // 底部微型進度條
-      const progressBar = document.createElement('div');
-      progressBar.className = 'student-progress-bar';
-      const progressFill = document.createElement('div');
-      progressFill.className = 'student-progress-fill';
-      const progressPercent = Math.min(100, Math.round((athlete.laps / state.totalLaps) * 100));
-      progressFill.style.width = `${progressPercent}%`;
-      progressBar.appendChild(progressFill);
-
-      btn.appendChild(rankBadge);
-      btn.appendChild(bibEl);
-      btn.appendChild(statusEl);
-      btn.appendChild(progressBar);
-
-      // 點擊事件與長按微調綁定
-      bindButtonEvents(btn, athlete.id);
-
-      elements.gridContainer.appendChild(btn);
-    });
-
-    // 2. 渲染最後一圈醒目提醒看板 (專門方便裁判高喊)
-    renderBellBanner(finalLapAthletes);
-
-    // 3. 渲染頂部即時領先摘要
-    renderLeaderSummary(sorted);
-
-    // 4. 更新復原按鈕狀態
-    renderUndoButton();
-
-    // 5. 更新設定面板數值與抽屜排名
-    elements.targetLapsDisplay.textContent = `${state.totalLaps} 圈`;
-    elements.inputTotalLaps.value = state.totalLaps;
-    elements.inputTotalAthletes.value = state.totalAthletes;
-    elements.rankDrawerLapInfo.textContent = `(目標 ${state.totalLaps} 圈 / 參賽 ${state.totalAthletes} 人)`;
-
-    if (elements.rankDrawer.classList.contains('open')) {
-      renderRankDrawer(sorted);
     }
   }
 
-  // 綁定號碼按鈕觸控 (點擊 + 長按倒退1圈)
-  function bindButtonEvents(btn, athleteId) {
+  /**
+   * 建立並渲染 30 個學生號碼按鈕
+   */
+  function buildButtonsGrid() {
+    gridContainer.innerHTML = '';
+
+    for (let i = 1; i <= TOTAL_STUDENTS; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'bib-btn';
+      btn.id = `bib-btn-${i}`;
+      btn.setAttribute('data-bib', i);
+
+      // 長按時的視覺填滿遮罩
+      const progressOverlay = document.createElement('div');
+      progressOverlay.className = 'press-progress';
+      btn.appendChild(progressOverlay);
+
+      // 號碼衣數字
+      const numSpan = document.createElement('span');
+      numSpan.className = 'bib-number';
+      numSpan.textContent = i < 10 ? `0${i}` : `${i}`;
+      btn.appendChild(numSpan);
+
+      // 圈數文字
+      const lapsSpan = document.createElement('span');
+      lapsSpan.className = 'bib-laps';
+      lapsSpan.id = `bib-laps-${i}`;
+      lapsSpan.textContent = `0/${totalLaps}圈`;
+      btn.appendChild(lapsSpan);
+
+      // 狀態與名次徽章
+      const statusSpan = document.createElement('span');
+      statusSpan.className = 'bib-status';
+      statusSpan.id = `bib-status-${i}`;
+      statusSpan.textContent = '準備';
+      btn.appendChild(statusSpan);
+
+      // 綁定長按與短按觸發器 (支援行動裝置觸控與滑鼠)
+      attachPressHandlers(btn, i);
+
+      gridContainer.appendChild(btn);
+    }
+  }
+
+  /**
+   * 為按鈕綁定短按/長按事件
+   * 短按：+1圈
+   * 長按：-1圈 (帶進度條提示)
+   */
+  function attachPressHandlers(element, bib) {
     let pressTimer = null;
-    let isLongPress = false;
+    let isLongPressTriggered = false;
+    let startX = 0;
+    let startY = 0;
+
+    // 防止右鍵選單彈窗干擾長按
+    element.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      return false;
+    });
 
     const startPress = (e) => {
-      isLongPress = false;
+      // 若是滑鼠事件，只接受左鍵
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+      isLongPressTriggered = false;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      element.classList.add('pressing');
+
+      // 設定長按計時器
       pressTimer = setTimeout(() => {
-        isLongPress = true;
-        decrementLap(athleteId);
-      }, 750); // 長按 750ms 觸發減圈
+        isLongPressTriggered = true;
+        element.classList.remove('pressing');
+        decrementLap(bib); // 長按觸發：減少圈數
+      }, LONG_PRESS_MS);
     };
 
     const cancelPress = () => {
-      clearTimeout(pressTimer);
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      element.classList.remove('pressing');
     };
 
-    btn.addEventListener('touchstart', startPress, { passive: true });
-    btn.addEventListener('touchend', (e) => {
-      cancelPress();
-      if (!isLongPress) {
-        recordLap(athleteId);
+    const endPress = (e) => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
       }
-    });
-    btn.addEventListener('touchcancel', cancelPress);
+      element.classList.remove('pressing');
 
-    // 支援滑鼠操作 (PC 或測試時)
-    btn.addEventListener('mousedown', startPress);
-    btn.addEventListener('mouseup', () => {
-      cancelPress();
-      if (!isLongPress) {
-        recordLap(athleteId);
+      // 若未觸發長按，則視為短按
+      if (!isLongPressTriggered) {
+        incrementLap(bib); // 短按觸發：增加圈數
       }
-    });
-    btn.addEventListener('mouseleave', cancelPress);
+      isLongPressTriggered = false;
+    };
+
+    // 指標移動超過閾值則取消長按 (防滑動誤觸)
+    const movePress = (e) => {
+      const deltaX = Math.abs(e.clientX - startX);
+      const deltaY = Math.abs(e.clientY - startY);
+      if (deltaX > 12 || deltaY > 12) {
+        cancelPress();
+      }
+    };
+
+    element.addEventListener('pointerdown', startPress);
+    element.addEventListener('pointerup', endPress);
+    element.addEventListener('pointercancel', cancelPress);
+    element.addEventListener('pointerleave', cancelPress);
+    element.addEventListener('pointermove', movePress);
   }
 
-  // 渲染最後一圈提醒看板
-  function renderBellBanner(finalLapAthletes) {
-    if (finalLapAthletes.length > 0) {
-      elements.bellBanner.classList.add('has-alert');
-      elements.finalLapList.innerHTML = '';
-      finalLapAthletes.forEach(ath => {
-        const chip = document.createElement('span');
-        chip.className = 'final-bib-chip';
-        chip.textContent = `#${ath.bib}`;
-        elements.finalLapList.appendChild(chip);
-      });
-    } else {
-      elements.bellBanner.classList.remove('has-alert');
-      elements.finalLapList.innerHTML = '<span class="empty-tip">目前無進入最後一圈選手</span>';
-    }
-  }
+  /**
+   * 刷新所有按鈕的顯示狀態 (外觀、圈數、名次、警告)
+   */
+  function renderAllButtons() {
+    students.forEach(student => {
+      const btn = document.getElementById(`bib-btn-${student.bib}`);
+      if (!btn) return;
 
-  // 渲染即時領先摘要
-  function renderLeaderSummary(sorted) {
-    const runningOrDone = sorted.filter(a => a.laps > 0);
-    if (runningOrDone.length === 0) {
-      elements.leaderSummary.textContent = '比賽準備中，點擊號碼開始計圈';
-      return;
-    }
+      const lapsSpan = document.getElementById(`bib-laps-${student.bib}`);
+      const statusSpan = document.getElementById(`bib-status-${student.bib}`);
 
-    const leaders = runningOrDone.slice(0, 3).map((a, i) => {
-      const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
-      const status = a.laps >= state.totalLaps ? '完賽' : `${a.laps}圈`;
-      return `${medal}#${a.bib}(${status})`;
-    });
+      // 清除舊狀態 class
+      btn.classList.remove('running', 'final-lap', 'finished', 'rank-1', 'rank-2', 'rank-3');
 
-    elements.leaderSummary.textContent = leaders.join('  ');
-  }
+      // 更新圈數文字
+      lapsSpan.textContent = `${student.laps}/${totalLaps}圈`;
 
-  // 渲染復原按鈕
-  function renderUndoButton() {
-    if (state.history.length > 0) {
-      elements.btnUndo.disabled = false;
-      const last = state.history[state.history.length - 1];
-      elements.undoTargetBadge.textContent = `#${last.bib}`;
-      elements.undoTargetBadge.classList.add('active');
-    } else {
-      elements.btnUndo.disabled = true;
-      elements.undoTargetBadge.textContent = '';
-      elements.undoTargetBadge.classList.remove('active');
-    }
-  }
+      // 判定狀態
+      const isFinalLap = !student.isFinished && totalLaps > 1 && student.laps === totalLaps - 1;
 
-  // 渲染排名抽屜總表
-  function renderRankDrawer(sorted) {
-    elements.rankListContainer.innerHTML = '';
-
-    sorted.forEach((athlete, index) => {
-      const rankNum = index + 1;
-      const row = document.createElement('div');
-      row.className = 'rank-row';
-
-      if (rankNum === 1) row.classList.add('top-1');
-      if (rankNum === 2) row.classList.add('top-2');
-      if (rankNum === 3) row.classList.add('top-3');
-
-      const isFinished = athlete.laps >= state.totalLaps;
-      const isFinalLap = !isFinished && athlete.laps === (state.totalLaps - 1);
-
-      if (isFinished) row.classList.add('status-finished');
-      if (isFinalLap) row.classList.add('status-final');
-
-      let statusHtml = '';
-      if (isFinished) {
-        statusHtml = `<span class="status-tag tag-done">完賽 (${athlete.finishRank})</span>`;
+      if (student.isFinished) {
+        // 完賽
+        btn.classList.add('finished');
+        statusSpan.textContent = `完賽#${student.rank || 1}`;
       } else if (isFinalLap) {
-        statusHtml = `<span class="status-tag tag-final">🔔剩最後1圈</span>`;
-      } else if (athlete.laps > 0) {
-        statusHtml = `<span class="status-tag tag-running">進行中</span>`;
+        // 剩最後一圈 (最高警示等級)
+        btn.classList.add('final-lap');
+        statusSpan.textContent = student.rank ? `剩1圈#${student.rank}` : `剩1圈`;
+      } else if (student.laps > 0) {
+        // 進行中
+        btn.classList.add('running');
+        statusSpan.textContent = student.rank ? `第${student.rank}名` : `進行中`;
+
+        // 前三名特殊標記
+        if (student.rank === 1) btn.classList.add('rank-1');
+        else if (student.rank === 2) btn.classList.add('rank-2');
+        else if (student.rank === 3) btn.classList.add('rank-3');
       } else {
-        statusHtml = `<span class="status-tag" style="background:#334155;color:#94a3b8;">未出發</span>`;
+        // 0 圈未開始
+        statusSpan.textContent = '準備';
       }
-
-      row.innerHTML = `
-        <div class="col-rank-num">${rankNum <= 3 ? ['🥇','🥈','🥉'][rankNum-1] : rankNum}</div>
-        <div class="col-bib-num">#${athlete.bib}</div>
-        <div class="col-laps-detail">${athlete.laps} / ${state.totalLaps} 圈</div>
-        <div>${statusHtml}</div>
-      `;
-
-      elements.rankListContainer.appendChild(row);
     });
-  }
 
-  // 狀態列小提示
-  let statusTimeout = null;
-  function showStatusMessage(msg, isHighlight = false) {
-    clearTimeout(statusTimeout);
-    elements.statusMessage.textContent = msg;
-    if (isHighlight) {
-      elements.statusMessage.classList.add('highlight');
-      statusTimeout = setTimeout(() => {
-        elements.statusMessage.classList.remove('highlight');
-        elements.statusMessage.textContent = '點擊號碼完成1圈｜長按號碼可倒退1圈';
-      }, 3500);
+    // 如果名次榜面板處於開啟狀態，同步更新清單
+    if (leaderboardPanel.classList.contains('active')) {
+      renderLeaderboardPanel();
     }
   }
 
-  // ----------------------------------------------------
-  // 抽屜控制 (完全無彈窗，側欄抽屜式滑出)
-  // ----------------------------------------------------
-  function openRankDrawer() {
-    closeDrawers();
-    const { sorted } = calculateRankings();
-    renderRankDrawer(sorted);
-    elements.rankDrawer.classList.add('open');
-    elements.drawerBackdrop.classList.add('active');
+  /**
+   * 渲染名次榜面板清單 (供老師謄寫全體排序)
+   */
+  function renderLeaderboardPanel() {
+    const finishedCount = students.filter(s => s.isFinished).length;
+    panelSummary.textContent = `完賽: ${finishedCount} / ${TOTAL_STUDENTS} 人`;
+
+    leaderboardList.innerHTML = '';
+
+    // 排序清單：已完賽 -> 圈數多到少 -> 先達標者在前 -> 0圈
+    const sorted = [...students].sort((a, b) => {
+      if (a.isFinished && b.isFinished) return a.finishTime - b.finishTime;
+      if (a.isFinished) return -1;
+      if (b.isFinished) return 1;
+      if (b.laps !== a.laps) return b.laps - a.laps;
+      if (a.laps > 0) return a.lastUpdated - b.lastUpdated;
+      return a.bib - b.bib;
+    });
+
+    sorted.forEach((student, index) => {
+      const card = document.createElement('div');
+      card.className = 'rank-card';
+      if (index === 0 && student.laps > 0) card.classList.add('top-1');
+      if (index === 1 && student.laps > 0) card.classList.add('top-2');
+      if (index === 2 && student.laps > 0) card.classList.add('top-3');
+
+      // 左側：名次與號碼
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'rank-card-left';
+
+      const orderSpan = document.createElement('span');
+      orderSpan.className = 'rank-order';
+      orderSpan.textContent = student.rank ? `#${student.rank}` : `-`;
+      leftDiv.appendChild(orderSpan);
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'rank-bib-name';
+      nameSpan.textContent = `${student.bibStr} 號`;
+      leftDiv.appendChild(nameSpan);
+
+      card.appendChild(leftDiv);
+
+      // 右側：圈數與狀態
+      const rightDiv = document.createElement('div');
+      rightDiv.className = 'rank-card-right';
+
+      const lapBadge = document.createElement('span');
+      lapBadge.className = 'rank-lap-badge';
+      lapBadge.textContent = `${student.laps} / ${totalLaps} 圈`;
+      rightDiv.appendChild(lapBadge);
+
+      const statusBadge = document.createElement('span');
+      statusBadge.className = 'rank-status-badge';
+      if (student.isFinished) {
+        statusBadge.classList.add('finished');
+        statusBadge.textContent = '已完賽';
+      } else if (totalLaps > 1 && student.laps === totalLaps - 1) {
+        statusBadge.classList.add('final-lap');
+        statusBadge.textContent = '剩最後1圈';
+      } else if (student.laps > 0) {
+        statusBadge.textContent = '競賽中';
+      } else {
+        statusBadge.textContent = '尚未出發';
+      }
+      rightDiv.appendChild(statusBadge);
+
+      card.appendChild(rightDiv);
+      leaderboardList.appendChild(card);
+    });
   }
 
-  function openSettingsDrawer() {
-    closeDrawers();
-    elements.settingsDrawer.classList.add('open');
-    elements.drawerBackdrop.classList.add('active');
-  }
-
-  function closeDrawers() {
-    elements.rankDrawer.classList.remove('open');
-    elements.settingsDrawer.classList.remove('open');
-    elements.drawerBackdrop.classList.remove('active');
-  }
-
-  // ----------------------------------------------------
-  // 主題切換 (戶外烈日高對比模式)
-  // ----------------------------------------------------
-  function toggleOutdoorTheme() {
-    state.outdoorTheme = !state.outdoorTheme;
-    applyTheme();
-    saveState();
-  }
-
-  function applyTheme() {
-    if (state.outdoorTheme) {
-      document.body.classList.remove('theme-dark');
-      document.body.classList.add('theme-outdoor');
-      elements.themeIcon.textContent = '🌙';
-      elements.btnThemeToggle.title = '切換為深色運動模式';
-    } else {
-      document.body.classList.remove('theme-outdoor');
-      document.body.classList.add('theme-dark');
-      elements.themeIcon.textContent = '☀️';
-      elements.btnThemeToggle.title = '切換為烈日高對比模式';
-    }
-  }
-
-  // ----------------------------------------------------
-  // 監聽與事件綁定
-  // ----------------------------------------------------
-  function bindGlobalEvents() {
-    // 復原
-    elements.btnUndo.addEventListener('click', undoLastAction);
-
-    // 抽屜開啟與關閉
-    elements.btnRankToggle.addEventListener('click', openRankDrawer);
-    elements.btnCloseRank.addEventListener('click', closeDrawers);
-    elements.btnSettingsToggle.addEventListener('click', openSettingsDrawer);
-    elements.btnCloseSettings.addEventListener('click', closeDrawers);
-    elements.drawerBackdrop.addEventListener('click', closeDrawers);
-
-    // 主題模式切換
-    elements.btnThemeToggle.addEventListener('click', toggleOutdoorTheme);
-
-    // 總圈數調節
-    elements.btnLapMinus.addEventListener('click', () => {
-      if (state.totalLaps > 1) {
-        state.totalLaps--;
-        saveState();
-        render();
+  /**
+   * 綁定控制項事件
+   */
+  function bindControlEvents() {
+    // 總圈數切換
+    totalLapsSelect.addEventListener('change', (e) => {
+      const newTotal = parseInt(e.target.value, 10);
+      if (newTotal >= 1 && newTotal <= 8) {
+        totalLaps = newTotal;
+        // 重新檢驗每位學生完賽狀態
+        students.forEach(s => {
+          if (s.laps >= totalLaps) {
+            s.isFinished = true;
+            if (!s.finishTime) s.finishTime = s.lastUpdated || Date.now();
+          } else {
+            s.isFinished = false;
+            s.finishTime = 0;
+          }
+        });
+        onRaceStateChanged(null, `已將總圈數設定為 ${totalLaps} 圈`);
       }
     });
 
-    elements.btnLapPlus.addEventListener('click', () => {
-      if (state.totalLaps < 20) {
-        state.totalLaps++;
-        saveState();
-        render();
+    // 復原按鈕
+    undoBtn.addEventListener('click', () => {
+      undoLastAction();
+    });
+
+    // 重設按鈕 (內聯二階段防呆確認，無彈窗)
+    resetBtn.addEventListener('click', () => {
+      if (!isResetConfirming) {
+        // 第一階段：顯示確認字樣
+        isResetConfirming = true;
+        resetBtn.classList.add('confirming');
+        resetBtnText.textContent = '確定重設?';
+
+        // 3 秒後自動還原
+        if (resetConfirmTimer) clearTimeout(resetConfirmTimer);
+        resetConfirmTimer = setTimeout(() => {
+          isResetConfirming = false;
+          resetBtn.classList.remove('confirming');
+          resetBtnText.textContent = '重設';
+        }, RESET_TIMEOUT_MS);
+      } else {
+        // 第二階段：執行真正重設
+        if (resetConfirmTimer) clearTimeout(resetConfirmTimer);
+        isResetConfirming = false;
+        resetBtn.classList.remove('confirming');
+        resetBtnText.textContent = '重設';
+
+        initStudents();
+        historyStack = [];
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+
+        onRaceStateChanged(null, '所有圈數與名次已歸零重設');
       }
     });
 
-    // 參賽人數調節
-    elements.btnAthMinus.addEventListener('click', () => {
-      if (state.totalAthletes > 1) {
-        state.totalAthletes--;
-        saveState();
-        render();
+    // 名次榜開關
+    viewToggleBtn.addEventListener('click', () => {
+      const isOpen = leaderboardPanel.classList.toggle('active');
+      viewToggleText.textContent = isOpen ? '網格' : '名次';
+      if (isOpen) {
+        renderLeaderboardPanel();
       }
     });
 
-    elements.btnAthPlus.addEventListener('click', () => {
-      if (state.totalAthletes < 30) {
-        state.totalAthletes++;
-        saveState();
-        render();
-      }
+    closeLeaderboardBtn.addEventListener('click', () => {
+      leaderboardPanel.classList.remove('active');
+      viewToggleText.textContent = '名次';
     });
-
-    // 重設比賽按鈕
-    elements.btnResetMatch.addEventListener('click', handleResetMatch);
-
-    // 防止 iOS Safari 橡皮筋下拉捲動造成跳動
-    document.addEventListener('touchmove', (e) => {
-      // 僅允許排名清單與設定清單滾動，主面板嚴格禁止捲動
-      if (!e.target.closest('.drawer-content')) {
-        e.preventDefault();
-      }
-    }, { passive: false });
   }
 
-  // ----------------------------------------------------
-  // 啟動入口
-  // ----------------------------------------------------
-  loadState();
-  applyTheme();
-  bindGlobalEvents();
-  render();
+  /**
+   * 初始化系統啟動
+   */
+  function startApp() {
+    initStudents();
+    const hasSaved = loadSavedState();
+    buildButtonsGrid();
+    bindControlEvents();
+    calculateRankings();
+    renderAllButtons();
+    updateUndoButtonState();
+    updateStatusBanners(hasSaved ? '已恢復上次競賽紀錄' : null);
+  }
 
+  // 啟動應用
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+  } else {
+    startApp();
+  }
 })();
