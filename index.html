@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="GHJH SPORT 徑賽即時計圈與排名系統">
+  <title>GHJH SPORT</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <!-- 頂部即時通知橫幅 (最後一圈 / 完賽提醒) -->
+  <aside id="alertBanner" class="alert-banner hidden" role="alert" aria-live="assertive">
+    <div class="alert-content">
+      <span class="alert-icon" id="alertIcon">🔔</span>
+      <div class="alert-text-group">
+        <span class="alert-title" id="alertTitle">最後一圈！</span>
+        <span class="alert-desc" id="alertDesc">號碼 12 進入最後一圈</span>
+      </div>
+    </div>
+    <button id="alertDismissBtn" class="alert-dismiss-btn" aria-label="關閉">✕</button>
+  </aside>
+
+  <!-- 主應用程式容器 -->
+  <div class="app-container">
+    <!-- 頂部精簡導覽與碼表 -->
+    <header class="app-header">
+      <div class="header-main-row">
+        <div class="brand">
+          <span class="brand-badge">🏃</span>
+          <h1 class="brand-title">GHJH SPORT</h1>
+        </div>
+
+        <!-- 碼表整合區 -->
+        <div class="timer-box">
+          <div class="timer-time" id="timerDisplay">00:00.0</div>
+          <button id="startTimerBtn" class="btn btn-primary btn-mini" title="起跑/繼續">
+            <span id="startBtnText">▶</span>
+          </button>
+          <button id="pauseTimerBtn" class="btn btn-secondary btn-mini" title="暫停" disabled>
+            <span>⏸</span>
+          </button>
+          <button id="resetTimerBtn" class="btn btn-ghost btn-mini" title="重置">
+            <span>🔄</span>
+          </button>
+        </div>
+
+        <div class="header-tools">
+          <button id="themeToggleBtn" class="icon-btn-sm" title="強光/暗色">☀️</button>
+          <button id="settingsModalBtn" class="icon-btn-sm" title="設定">⚙️</button>
+        </div>
+      </div>
+
+      <!-- 次工具列：即時狀態與分頁 -->
+      <div class="header-sub-row">
+        <div class="quick-status">
+          <span class="status-pill bell-pill" id="statFinalLapPill">🔔 0</span>
+          <span class="status-pill finish-pill" id="statFinishedPill">🏁 0</span>
+          <button id="toggleSortOrderBtn" class="pill-btn-sm" title="切換排序">
+            <span id="sortOrderLabel">依號碼</span>
+          </button>
+        </div>
+        <nav class="nav-tabs" role="tablist">
+          <button id="tabBtnGrid" class="tab-btn active" role="tab" aria-selected="true" data-tab="gridTab">按鈕盤</button>
+          <button id="tabBtnRank" class="tab-btn" role="tab" aria-selected="false" data-tab="rankTab">即時名次</button>
+          <button id="tabBtnLog" class="tab-btn" role="tab" aria-selected="false" data-tab="logTab">紀錄</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- 主要內容區 (全螢幕不滾動按鈕盤) -->
+    <main class="main-content">
+      <!-- 視圖 1: 30 個學生計圈按鈕矩陣 (5欄x6行，完全單屏免滑動) -->
+      <section id="gridTab" class="tab-pane active" role="tabpanel">
+        <div id="runnerGrid" class="runner-grid" role="group" aria-label="選手號碼計圈按鈕">
+          <!-- 由 app.js 動態產生 30 個按鈕 -->
+        </div>
+      </section>
+
+      <!-- 視圖 2: 即時排名榜 -->
+      <section id="rankTab" class="tab-pane hidden" role="tabpanel">
+        <div class="leaderboard-header">
+          <h2 class="section-title">即時名次</h2>
+          <div class="leaderboard-actions">
+            <button id="copyRankBtn" class="btn btn-sm btn-outline">📋 複製</button>
+            <button id="exportCsvBtn" class="btn btn-sm btn-outline">📥 CSV</button>
+          </div>
+        </div>
+        <div id="rankList" class="rank-list" role="list">
+          <!-- 由 app.js 動態產生 -->
+        </div>
+      </section>
+
+      <!-- 視圖 3: 操作歷史明細紀錄 -->
+      <section id="logTab" class="tab-pane hidden" role="tabpanel">
+        <div class="log-header">
+          <h2 class="section-title">計圈紀錄</h2>
+          <button id="clearAllLogsConfirmBtn" class="btn btn-sm btn-danger-outline">清空</button>
+        </div>
+        <div id="logList" class="log-list">
+          <!-- 由 app.js 動態產生 -->
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部固定浮動操作條 (核心：復原按鈕) -->
+    <footer class="app-bottom-bar" id="bottomBar">
+      <div class="bottom-action-info">
+        <span class="last-action-text" id="lastActionText">就緒</span>
+      </div>
+      <button id="undoBtn" class="btn btn-undo" disabled aria-label="復原上一步">
+        <span class="undo-icon">↩</span>
+        <span class="undo-main">復原上一步</span>
+        <span class="undo-sub" id="undoSubText"></span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- 設定視窗 Modal (圈數預設/上限8，人數預設/上限30) -->
+  <dialog id="settingsModal" class="app-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">⚙️ 賽事設定</h2>
+        <button id="closeSettingsBtn" class="modal-close-btn" aria-label="關閉設定">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="inputTotalLaps" class="form-label">
+            <span>比賽圈數 (預設與上限 8 圈)：</span>
+            <span class="form-val" id="valTotalLaps">8</span>
+          </label>
+          <input type="range" id="inputTotalLaps" min="1" max="8" value="8" class="form-range">
+          <div class="range-marks">
+            <span>1</span>
+            <span>2</span>
+            <span>4</span>
+            <span>6</span>
+            <span class="active-mark">8 (上限)</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="inputRunnerCount" class="form-label">
+            <span>參賽人數 (預設與上限 30 人)：</span>
+            <span class="form-val" id="valRunnerCount">30</span>
+          </label>
+          <input type="range" id="inputRunnerCount" min="1" max="30" value="30" class="form-range">
+          <div class="range-marks">
+            <span>5</span>
+            <span>10</span>
+            <span>15</span>
+            <span>20</span>
+            <span class="active-mark">30 (上限)</span>
+          </div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <div class="form-group toggle-group">
+          <div class="toggle-info">
+            <span class="toggle-title">📳 觸控震動反饋</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switchVibration" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group toggle-group">
+          <div class="toggle-info">
+            <span class="toggle-title">🛡️ 連點防誤觸保護 (0.8 秒)</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switchCooldown" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">選手自訂備註 (可選，每行一位例如「1號 王小明」)：</label>
+          <textarea id="customRunnerNames" class="form-textarea" rows="2" placeholder="選填：每行輸入學生姓名"></textarea>
+        </div>
+
+        <div class="modal-danger-zone">
+          <button id="resetAllDataBtn" class="btn btn-danger-full">
+            <span>⚠️ 重置此場比賽所有計圈數據</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn btn-primary btn-block">儲存設定</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 浮動提示 Toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
