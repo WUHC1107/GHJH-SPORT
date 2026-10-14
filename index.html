@@ -39,6 +39,7 @@
       height: 100%;
       height: 100dvh;
       overflow: hidden;
+      overscroll-behavior: none;
       background-color: var(--bg-main);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", sans-serif;
@@ -68,16 +69,22 @@
     }
 
     .brand {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
       font-weight: 900;
       font-size: 1.05rem;
       letter-spacing: 0.8px;
       background: linear-gradient(135deg, #60a5fa, #a855f7);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      color: #60a5fa;
     }
 
     .top-actions {
@@ -280,12 +287,14 @@
       border-radius: 6px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      padding: 2px 3px;
+      padding: 1px;
+      gap: 3px;
       box-sizing: border-box;
       cursor: pointer;
       overflow: hidden;
+      touch-action: none;
       transition: border-color 0.15s, background-color 0.15s, transform 0.08s;
       -webkit-tap-highlight-color: transparent;
     }
@@ -294,24 +303,21 @@
       transform: scale(0.96);
     }
 
-    /* 頂部指示區：左上名次，右上最後一圈/完賽標籤 */
-    .card-top {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      line-height: 1;
-      height: 14px;
-    }
-
+    /* 角落指示區：名次左上，狀態圖示右上，絕不佔用中央垂直空間 */
     .rank-tag {
-      font-size: 0.65rem;
-      font-weight: 800;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      z-index: 2;
+      font-size: 0.62rem;
+      font-weight: 900;
+      line-height: 1;
       color: var(--text-muted);
       border-radius: 3px;
-      padding: 0 2px;
-      min-width: 14px;
+      padding: 1px 3px;
+      min-width: 12px;
       text-align: center;
+      pointer-events: none;
     }
 
     .rank-tag.p1 {
@@ -331,52 +337,64 @@
     }
     .rank-tag.top-ten {
       color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
     }
 
     .status-icon {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      z-index: 2;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 14px;
       height: 14px;
       line-height: 1;
+      pointer-events: none;
     }
 
     .status-icon svg {
-      width: 12px;
-      height: 12px;
+      width: 13px;
+      height: 13px;
     }
 
-    /* 中央巨大學生號碼 */
+    /* 中央巨大學生號碼：依比例最大化 */
     .id-number {
-      font-size: clamp(1.1rem, 4.2vw, 1.6rem);
+      font-size: clamp(1.45rem, 6.2vw, 2.3rem);
       font-weight: 900;
-      color: #e2e8f0;
-      line-height: 1;
-      letter-spacing: -0.5px;
-      margin: auto 0;
+      color: #f1f5f9;
+      line-height: 0.95;
+      letter-spacing: -1px;
+      margin: 0;
+      white-space: nowrap;
     }
 
-    /* 底部圈數進度資訊 */
+    /* 底部圈數進度資訊：依比例最大化 */
     .lap-info {
-      width: 100%;
-      display: flex;
+      display: inline-flex;
       justify-content: center;
       align-items: baseline;
-      gap: 1px;
       line-height: 1;
-      height: 14px;
-      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
     }
 
     .current-lap {
-      font-size: 0.82rem;
+      font-size: clamp(1.05rem, 4.6vw, 1.6rem);
+      font-weight: 900;
       color: #94a3b8;
+      line-height: 1;
     }
 
     .total-lap-sub {
-      font-size: 0.6rem;
+      font-size: clamp(0.58rem, 2.3vw, 0.8rem);
+      font-weight: 700;
       color: #475569;
+      line-height: 1;
+      margin-left: 1px;
     }
 
     /* 各種狀態樣式 */
@@ -387,6 +405,9 @@
     }
     .student-btn.in-progress .id-number {
       color: #60a5fa;
+    }
+    .student-btn.in-progress .lap-info {
+      background: rgba(37, 99, 235, 0.15);
     }
     .student-btn.in-progress .current-lap {
       color: #93c5fd;
@@ -402,6 +423,9 @@
     .student-btn.bell-lap .id-number {
       color: #fef08a;
       text-shadow: 0 0 8px rgba(254, 240, 138, 0.6);
+    }
+    .student-btn.bell-lap .lap-info {
+      background: rgba(245, 158, 11, 0.2);
     }
     .student-btn.bell-lap .current-lap {
       color: #fde047;
@@ -420,6 +444,9 @@
     }
     .student-btn.finished .id-number {
       color: #6ee7b7;
+    }
+    .student-btn.finished .lap-info {
+      background: rgba(16, 185, 129, 0.18);
     }
     .student-btn.finished .current-lap {
       color: #34d399;
@@ -549,7 +576,7 @@
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
           <line x1="4" y1="22" x2="4" y2="15"></line>
         </svg>
-        GHJH SPORT
+        <span class="brand-title">GHJH SPORT</span>
       </div>
 
       <div class="top-actions">
@@ -656,10 +683,8 @@
           btn.setAttribute('data-id', i);
           
           btn.innerHTML = `
-            <div class="card-top">
-              <span class="rank-tag" id="rank-tag-${i}"></span>
-              <span class="status-icon" id="status-icon-${i}"></span>
-            </div>
+            <span class="rank-tag" id="rank-tag-${i}"></span>
+            <span class="status-icon" id="status-icon-${i}"></span>
             <div class="id-number">${i < 10 ? '0' + i : i}</div>
             <div class="lap-info">
               <span class="current-lap" id="lap-num-${i}">0</span>
@@ -688,8 +713,14 @@
         function startPress(e) {
           isLongPress = false;
           startTimestamp = Date.now();
-          startX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-          startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+          startX = e.clientX || 0;
+          startY = e.clientY || 0;
+
+          try {
+            if (e.pointerId !== undefined) {
+              btn.setPointerCapture(e.pointerId);
+            }
+          } catch (_) {}
 
           function animateBar() {
             const elapsed = Date.now() - startTimestamp;
@@ -717,11 +748,11 @@
 
         function movePress(e) {
           if (!startTimestamp) return;
-          const currentX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-          const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+          const currentX = e.clientX || 0;
+          const currentY = e.clientY || 0;
           const dist = Math.hypot(currentX - startX, currentY - startY);
           if (dist > MOVE_TOLERANCE) {
-            cancelPress();
+            cancelPress(e);
           }
         }
 
@@ -729,6 +760,12 @@
           clearTimeout(pressTimer);
           cancelAnimationFrame(animationFrame);
           if (lpBar) lpBar.style.width = '0%';
+
+          try {
+            if (e && e.pointerId !== undefined && btn.hasPointerCapture(e.pointerId)) {
+              btn.releasePointerCapture(e.pointerId);
+            }
+          } catch (_) {}
 
           if (!isLongPress && startTimestamp > 0 && (Date.now() - startTimestamp) < LONG_PRESS_DURATION) {
             // 短按加圈
@@ -738,10 +775,17 @@
           isLongPress = false;
         }
 
-        function cancelPress() {
+        function cancelPress(e) {
           clearTimeout(pressTimer);
           cancelAnimationFrame(animationFrame);
           if (lpBar) lpBar.style.width = '0%';
+
+          try {
+            if (e && e.pointerId !== undefined && btn.hasPointerCapture(e.pointerId)) {
+              btn.releasePointerCapture(e.pointerId);
+            }
+          } catch (_) {}
+
           startTimestamp = 0;
           isLongPress = false;
         }
@@ -773,7 +817,6 @@
 
         const prevLaps = student.laps;
         const prevTime = student.lastLapTime;
-        const prevRank = student.finishRank;
 
         // 計算新圈數
         let newLaps = prevLaps + delta;
@@ -787,7 +830,6 @@
           studentId,
           prevLaps,
           prevTime,
-          prevRank,
           newLaps
         });
         updateUndoButton();
@@ -795,17 +837,6 @@
         // 更新學生狀態
         student.laps = newLaps;
         student.lastLapTime = newLaps > 0 ? Date.now() : 0;
-
-        // 完賽標記計算
-        if (student.laps >= targetLaps) {
-          if (!student.finishRank) {
-            // 取得已完賽人數 + 1
-            const finishedCount = students.filter(s => s.laps >= targetLaps && s.finishRank !== null).length;
-            student.finishRank = finishedCount + 1;
-          }
-        } else {
-          student.finishRank = null;
-        }
 
         updateAllUI();
       }
@@ -818,7 +849,6 @@
         if (student) {
           student.laps = lastAction.prevLaps;
           student.lastLapTime = lastAction.prevTime;
-          student.finishRank = lastAction.prevRank;
         }
         updateUndoButton();
         updateAllUI();
@@ -834,30 +864,15 @@
       }
 
       // 計算各學生排名
-      // 規則：
-      // 1. 完賽者：以 finishRank 為主 (先完賽排名在前)
-      // 2. 未完賽者：圈數多者在前；若圈數相同，以先達到該圈數的時間早者在前
-      // 3. 圈數為 0 者：並列後續
+      // 規則：圈數多者在前；若圈數相同，以先達到該圈數的時間戳早者在前；0 圈依編號排序
       function calculateRankings() {
         const ranked = [...students].sort((a, b) => {
-          // 若雙方都完賽
-          if (a.laps >= targetLaps && b.laps >= targetLaps) {
-            return (a.finishRank || 999) - (b.finishRank || 999);
-          }
-          // A完賽 B未完賽
-          if (a.laps >= targetLaps) return -1;
-          if (b.laps >= targetLaps) return 1;
-
-          // 比較圈數
           if (b.laps !== a.laps) {
             return b.laps - a.laps;
           }
-
-          // 圈數相同時
           if (a.laps > 0) {
-            return a.lastLapTime - b.lastLapTime; // 時間戳記越小代表越先達到
+            return a.lastLapTime - b.lastLapTime;
           }
-
           return a.id - b.id;
         });
 
@@ -1018,6 +1033,11 @@
 
       function applyTargetLaps() {
         targetLapsDisplay.textContent = `🏁 ${targetLaps}`;
+        students.forEach(s => {
+          if (s.laps > targetLaps) {
+            s.laps = targetLaps;
+          }
+        });
         // 更新所有按鈕底部的總圈數顯示
         for (let i = 1; i <= TOTAL_STUDENTS; i++) {
           const sub = document.querySelector(`#btn-student-${i} .total-lap-sub`);
