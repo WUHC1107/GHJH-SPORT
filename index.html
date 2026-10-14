@@ -529,35 +529,58 @@
       flex: 1;
       overflow-y: auto;
       padding-top: 8px;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      display: flex;
+      flex-direction: column;
       gap: 6px;
+      -webkit-overflow-scrolling: touch;
     }
     .rank-card-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 6px 10px;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-height: 48px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+    .rank-card-row.top-1 {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .rank-card-row.top-2 {
+      border-color: #94a3b8;
+      background: rgba(148, 163, 184, 0.12);
+    }
+    .rank-card-row.top-3 {
+      border-color: #b45309;
+      background: rgba(180, 83, 9, 0.12);
     }
     .rank-pos {
       font-weight: 900;
-      font-size: 0.95rem;
-      width: 28px;
+      font-size: 1.15rem;
+      width: 46px;
+      display: flex;
+      align-items: center;
     }
     .rank-pos.c1 { color: #f59e0b; }
     .rank-pos.c2 { color: #cbd5e1; }
     .rank-pos.c3 { color: #ea580c; }
     .rank-bib {
-      font-weight: 800;
-      font-size: 1.1rem;
+      font-weight: 900;
+      font-size: 1.25rem;
       color: #f1f5f9;
+      letter-spacing: -0.5px;
     }
     .rank-lap-badge {
-      font-size: 0.8rem;
+      font-size: 1.05rem;
+      font-weight: 800;
       color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 3px;
     }
   </style>
 </head>
@@ -995,19 +1018,20 @@
         let html = '';
         rankedList.forEach(s => {
           const rank = rankMap.get(s.id);
-          const rankText = rank ? `${rank}` : '-';
+          let rowClass = '';
           let posColor = '';
-          if (rank === 1) posColor = 'c1';
-          else if (rank === 2) posColor = 'c2';
-          else if (rank === 3) posColor = 'c3';
+          if (rank === 1) { rowClass = 'top-1'; posColor = 'c1'; }
+          else if (rank === 2) { rowClass = 'top-2'; posColor = 'c2'; }
+          else if (rank === 3) { rowClass = 'top-3'; posColor = 'c3'; }
 
+          const displayRank = rank ? `#${rank}` : '-';
           const isFinished = s.laps >= targetLaps;
-          const isBell = s.laps === targetLaps - 1;
+          const isBell = s.laps === targetLaps - 1 && targetLaps > 1;
           const statusText = isFinished ? '🏁' : (isBell ? '🔔' : `${s.laps}/${targetLaps}`);
 
           html += `
-            <div class="rank-card-row">
-              <span class="rank-pos ${posColor}">${rankText}</span>
+            <div class="rank-card-row ${rowClass}">
+              <span class="rank-pos ${posColor}">${displayRank}</span>
               <span class="rank-bib">${s.id < 10 ? '0' + s.id : s.id}</span>
               <span class="rank-lap-badge">${statusText}</span>
             </div>
